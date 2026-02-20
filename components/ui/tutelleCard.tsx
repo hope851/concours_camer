@@ -39,7 +39,7 @@ export default function TutelleCard({ data }: { data: any }) {
         )}
       </div>
 
-      {/* Footer / Action */},
+      {/* Footer / Action */}
 
       <div className="px-8 pb-8">
   <Link 
