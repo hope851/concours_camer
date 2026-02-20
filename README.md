@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plateforme de Gestion des Concours - Cameroun
 
-## Getting Started
+Une application Next.js pour la gestion des concours et des utilisateurs.
 
-First, run the development server:
+## 🚀 Démarrage Rapide
+
+### 1. Installation des dépendances
+
+```bash
+npm install
+```
+
+### 2. Configuration de la Base de Données
+
+Modifiez le fichier `.env.local` avec votre URL de base de données PostgreSQL:
+
+```env
+DATABASE_URL="postgresql://utilisateur:motdepasse@localhost:5432/concours_camer"
+```
+
+### 3. Initialisation de Prisma
+
+```bash
+# Générer le client Prisma
+npx prisma generate
+
+# Exécuter les migrations (crée les tables)
+npx prisma migrate dev --name init
+```
+
+### 4. Démarrage du serveur de développement
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+L'application est accessible à [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Structure du Projet
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+├── app/
+│   ├── action/              # Server Actions
+│   │   └── user.ts         # Fonction de création d'utilisateur
+│   ├── utilisateur/         # Page de gestion des utilisateurs
+│   │   └── page.tsx
+│   ├── layout.tsx           # Layout racine
+│   ├── page.tsx            # Page d'accueil
+│   └── globals.css         # Styles globaux
+├── lib/
+│   └── prisma.ts           # Instance Prisma
+├── prisma/
+│   └── schema.prisma       # Schéma de la base de données
+└── public/                 # Fichiers statiques
+```
 
-## Learn More
+## 🗄️ Base de Données
 
-To learn more about Next.js, take a look at the following resources:
+Le projet utilise PostgreSQL avec Prisma ORM.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Modèles Principaux
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Users**: Gestion des utilisateurs avec authentification
+- **EES**: Établissements d'Enseignement Supérieur
+- **Filiere**: Filières d'études
+- **Concours**: Concours académiques
+- **TutelleInstitutionelle**: Entités tutélaires
 
-## Deploy on Vercel
+## 🔐 Sécurité
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Les mots de passe sont hashés avec bcryptjs
+- Les données sensibles sont protégées avec des variables d'environnement
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 Variables d'Environnement
+
+Créez un fichier `.env.local` à la racine du projet:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/concours_camer"
+```
+
+## 🛠️ Scripts Disponibles
+
+- `npm run dev` - Démarre le serveur de développement
+- `npm run build` - Crée une version de production
+- `npm start` - Démarre le serveur de production
+- `npm run lint` - Exécute l'analyseur de code
+
+## 📦 Dépendances Principales
+
+- **Next.js 16.1.6** - Framework React
+- **Prisma 7.3.0** - ORM Base de données
+- **React 19.2.3** - Bibliothèque UI
+- **Tailwind CSS 4** - Framework CSS
+- **TypeScript** - Typage statique
+
+## 🚨 Dépannage
+
+### Erreur: "Can't find module '@prisma/client'"
+
+Solution: Exécutez `npx prisma generate`
+
+### Erreur: "Database connection failed"
+
+Vérifiez que:
+1. PostgreSQL est en cours d'exécution
+2. La DATABASE_URL est correcte dans .env.local
+3. La base de données existe
+
+## 📞 Support
+
+Pour plus d'informations, consultez:
+- [Documentation Next.js](https://nextjs.org/docs)
+- [Documentation Prisma](https://www.prisma.io/docs)
+

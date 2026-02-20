@@ -5,10 +5,73 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+model TutelleInstitutionelle {
+  id String @id @default(uuid())
+  nom_tutelle String  @map("nom_tutelle")
+  nom_tutelle_tech String? @map("nom_tutelle_tech")
+  region String @map("region")
+  tutelle_bio String? @map("tutelle_bio")
+  ees EES[]
+  @@map("tutelle_institutionelle")
+}
+
+model EES{
+  id String @id @default(uuid())
+  nom_ees String @map("nom_ees") 
+  domaine String @map("domaine")
+  ees_bio String? @map("ees_bio")
+  ville String @map("ville")
+  site_ees String? @map("site_ees")
+  ees_type String @map("ees_type")
+  tutelle_id String 
+  tutelle TutelleInstitutionelle @relation(fields: [tutelle_id], references: [id])
+  filieres Filiere[]
+  concours Concours[]
+  @@map("ees")
+}
+
+
+model Filiere{
+  id String @id @default(uuid())
+  nom_filiere String @map("nom_filiere")
+  mention String? @map("mention")
+  ees_id String
+  ees EES @relation(fields: [ees_id], references: [id], onDelete: Cascade)
+  @@map("filiere")
+
+}
+model Concours{
+  id String @id @default(uuid())
+  nom_concours String @map("nom_concours")
+  etat Boolean @map("etat") @default(false)
+  concours_bio String? @map("concours_bio")
+  date_ouverture DateTime @map("date_ouverture")
+  limite_depot DateTime @map("limite_depot")
+  date_exam DateTime @map("date_exam")
+  diplome_requis String @map("diplome_requis")
+  ees_id String
+  ees EES @relation(fields: [ees_id], references: [id],onDelete: Cascade)
+  @@map("concours")
+
+}
+enum Role{
+  ADMIN
+  GESTIONAIRE
+  USER
+}
+model Users{
+  id String @id @default(uuid())
+  email String @unique @map("email")
+  password String @map("password")
+  nom String @map("nom")
+  role Role @default(USER) @map("role")
+  isActive Boolean @default(true) @map("is_active")
+  date_inscription DateTime @default(now()) @map("date_inscription")
+  @@map("users")
 }
