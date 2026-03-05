@@ -1,105 +1,166 @@
-import { MapPin, School, Globe, GraduationCap, ArrowRight, Building2 } from "lucide-react";
+"use client";
+import { DeleteEes } from "@/app/action/newees";
+import { MapPin, School, Globe, GraduationCap, ArrowRight, Building2, X, ExternalLink, Sparkles, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState, useRef, useEffect } from "react";
 
-// Tu peux exporter cette interface pour l'utiliser ailleurs
 interface EesProps {
-  data: {
-    id: string;
-    nom_ees: string;
-    domaine: string;
-    ees_bio?: string | null;
-    ville: string;
-    site_ees?: string | null;
-    ees_type: string; // Ex: Privé, Public, Grande École...
-    tutelle: {
-      nom_tutelle: string;
-    };
-    _count?: {
-      filieres: number;
-      concours: number;
-    };
-  };
+  data: any; // Garde ton interface détaillée ici
+  onEdit?: (ees: any) => void;
 }
 
-export default function EesCard({ data }: EesProps) {
+export default function EesCard({ data, onEdit }: EesProps) {
+  const [showFiliere, setShowFiliere] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowFiliere(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleDelete = async () => {
+    if (window.confirm(`Supprimer définitivement ${data.nom_ees} ?`)) {
+      setIsDeleting(true);
+      await DeleteEes(data.id, data.tutelle_id);
+      setIsDeleting(false);
+    }
+  };
+
+  if (!mounted) return <div className="h-125 w-full bg-slate-50 animate-pulse rounded-[2.5rem]" />;
+
   return (
-    <div className="group bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+    <div className={`group bg-white rounded-[2.8rem] shadow-sm border border-slate-100 hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col h-full relative overflow-visible ${isDeleting ? "opacity-50 grayscale" : ""}`}>
       
-      {/* Header avec Type d'EES */}
-      <div className="relative p-6 pb-0">
-        <div className="flex justify-between items-start mb-4">
-          <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
-            {data.ees_type}
-          </span>
-          {data.site_ees && (
-            <a href={data.site_ees} target="_blank" className="text-slate-400 hover:text-blue-600 transition-colors">
-              <Globe className="h-5 w-5" />
-            </a>
-          )}
+      {/* HEADER : Type, Ville + ACTIONS VISIBLES */}
+      <div className="p-8 pb-0">
+        <div className="flex justify-between items-start mb-5">
+          <div className="flex flex-col gap-2">
+            <span className="w-fit px-4 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest border border-indigo-100/50">
+              {data.ees_type}
+            </span>
+            <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px] uppercase tracking-tighter bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+              <MapPin className="h-3.5 w-3.5 text-rose-500" />
+              {data.ville}
+            </div>
+          </div>
+
+          {/* BOUTONS D'ACTION TOUJOURS VISIBLES */}
+          <div className="flex gap-2">
+            <Link
+              href={`/formupdateees?id=${data.id}&tutelle_id=${data.tutelle_id}`}
+              className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition-colors shadow-sm border border-amber-100"
+              onClick={() => onEdit?.(data)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Link>
+            <button 
+              onClick={handleDelete}
+              className="p-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-colors shadow-sm border border-rose-100"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         
-        <h2 className="text-xl font-bold text-slate-900 leading-tight group-hover:text-blue-700 transition-colors">
+        <h2 className="text-2xl font-black text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors duration-300">
           {data.nom_ees}
         </h2>
-        
-        <div className="flex items-center gap-1.5 mt-2 text-slate-500">
-          <MapPin className="h-3.5 w-3.5" />
-          <span className="text-sm font-medium">{data.ville}</span>
-        </div>
       </div>
 
-      {/* Corps de la carte */}
-      <div className="p-6 space-y-5 grow">
-        
-        {/* Domaine d'étude */}
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-100 p-2.5 rounded-xl text-slate-600">
+      {/* CONTENU (DOMAINE, TUTELLE, SITE) */}
+      <div className="p-8 space-y-6 grow">
+        <div className="flex items-start gap-4">
+          <div className="bg-slate-100 p-3 rounded-2xl text-slate-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
             <School className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold leading-none mb-1">Domaine</p>
-            <p className="text-sm font-semibold text-slate-700">{data.domaine}</p>
+            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Domaine</p>
+            <p className="text-[15px] font-bold text-slate-700">{data.domaine}</p>
           </div>
         </div>
 
-        {/* Tutelle Parent */}
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-50 p-2.5 rounded-xl text-indigo-600">
+        <div className="flex items-start gap-4">
+          <div className="bg-amber-50 p-3 rounded-2xl text-amber-600">
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] text-indigo-400 uppercase font-bold leading-none mb-1">Sous tutelle de</p>
-            <p className="text-sm font-semibold text-slate-700">{data.tutelle.nom_tutelle}</p>
+            <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Sous tutelle de</p>
+            <p className="text-[14px] font-bold text-slate-700 leading-snug line-clamp-1">{data.tutelle.nom_tutelle}</p>
           </div>
         </div>
 
-        {/* Bio courte */}
-        {data.ees_bio && (
-          <p className="text-sm text-slate-500 line-clamp-2 italic border-l-2 border-slate-100 pl-3">
-            {data.ees_bio}
-          </p>
+        {data.site_ees && (
+          <div className="flex items-start gap-4">
+            <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+              <Globe className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] text-blue-400 uppercase font-black tracking-widest mb-1">Site Web</p>
+              <a href={data.site_ees} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1.5 transition-colors">
+                <span className="truncate">{data.site_ees.replace(/(^\w+:|^)\/\//, '')}</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Footer avec compteurs (si tu inclus _count dans ta requête Prisma) */}
-      <div className="px-6 pb-6 mt-auto">
-        <div className="flex gap-4 mb-4 border-t border-slate-50 pt-4">
-            <div className="flex items-center gap-1">
-                <GraduationCap className="h-4 w-4 text-slate-400" />
-                <span className="text-xs font-medium text-slate-600">{data._count?.filieres || 0} Filières</span>
+      {/* FOOTER : STATS & ACTIONS */}
+      <div className="px-8 pb-8 mt-auto">
+        <div className="flex items-center justify-between mb-8 p-4 bg-slate-50/80 rounded-[2rem] border border-slate-100 relative">
+            <div ref={containerRef} className="relative">
+                <button 
+                  onClick={() => setShowFiliere(!showFiliere)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-bold text-xs ${
+                    showFiliere ? "bg-indigo-600 text-white shadow-lg" : "bg-white text-slate-600 shadow-sm border border-slate-100"
+                  }`}
+                >
+                  <GraduationCap className={`h-4 w-4 ${showFiliere ? "text-white" : "text-indigo-500"}`} />
+                  {data._count?.filieres || 0} Filières
+                </button>
+            
+                {showFiliere && (
+                  <div className="absolute bottom-full left-0 mb-4 bg-white border border-slate-200 shadow-2xl w-72 rounded-[2rem] z-50 overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-indigo-50/30 font-black text-[10px] text-indigo-600 uppercase tracking-widest">
+                        Offre Académique
+                        <X className="h-4 w-4 cursor-pointer" onClick={() => setShowFiliere(false)} />
+                    </div>
+                    <div className="p-3 max-h-64 overflow-y-auto">
+                      {data.filieres?.map((filiere: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-2xl transition-colors">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                          <span className="text-xs font-bold text-slate-700">{filiere.nom_filiere}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
-            <div className="flex items-center gap-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs font-medium text-slate-600">{data._count?.concours || 0} Concours</span>
+
+            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100/50">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-xs font-black text-emerald-700 uppercase tracking-tighter">
+                  {data._count?.concours || 0} Concours
+                </span>
             </div>
         </div>
 
         <Link 
-          href={`/gestionnaire-ees/${data.id}`}
-          className="flex w-full py-3.5 bg-slate-900 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all duration-200 justify-center items-center gap-2 group/btn shadow-lg shadow-slate-200 hover:shadow-blue-200"
+          href={`/gestionnaireconcours/${data.id}?nom_ees=${encodeURIComponent(data.nom_ees)}&tutelle_id=${data.tutelle_id}`}
+          className="group/btn block w-full" 
         >
-          Détails de l'établissement
-          <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+          <div className="w-full py-5 bg-indigo-600 text-white font-black text-sm rounded-[1.8rem] transition-all duration-300 flex justify-center items-center gap-3 group-hover/btn:bg-indigo-700 shadow-xl shadow-indigo-100 active:scale-95">
+            Gérer les Concours
+            <ArrowRight className="h-5 w-5 transition-transform group-hover/btn:translate-x-1" />
+          </div>
         </Link>
       </div>
     </div>

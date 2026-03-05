@@ -30,6 +30,7 @@ model EES{
   site_ees String? @map("site_ees")
   ees_type String @map("ees_type")
   tutelle_id String 
+  manager Users[] 
   tutelle TutelleInstitutionelle @relation(fields: [tutelle_id], references: [id])
   filieres Filiere[]
   concours Concours[]
@@ -55,6 +56,7 @@ model Concours{
   limite_depot DateTime @map("limite_depot")
   date_exam DateTime @map("date_exam")
   diplome_requis String @map("diplome_requis")
+  adress_exam String? @map("adress_exam")
   ees_id String
   ees EES @relation(fields: [ees_id], references: [id],onDelete: Cascade)
   @@map("concours")
@@ -73,5 +75,23 @@ model Users{
   role Role @default(USER) @map("role")
   isActive Boolean @default(true) @map("is_active")
   date_inscription DateTime @default(now()) @map("date_inscription")
+  eesId String? @map("ees_id")
+  managedees EES? @relation(fields: [eesId], references: [id])  
+
   @@map("users")
+}
+
+model News {
+  id        String   @id @default(cuid()) @map("id")
+  title     String @map("title")
+  image     String? @map("image")  // Optionnel : contient l'URL de l'image (ex: Cloudinary ou Uploadthing)
+  excerpt   String @map("excerpt")
+  content   String   @db.Text @map("content")
+  category  String @map("category")
+  isUrgent  Boolean  @default(false) @map("is_urgent")
+  slug      String   @unique @map("slug")
+  createdAt DateTime @default(now()) @map("created_at")
+  sourceUrl   String? @map("source_url")  // L'URL vers le site officiel ou le PDF original
+  sourceName  String? @map("source_name")  // Le nom du site (ex: "Portail MINESUP", "Journal Officiel")
+  @@map("news")
 }

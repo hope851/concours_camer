@@ -1,25 +1,30 @@
 "use server";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
+/**
+ * AJOUTER UN CONCOURS
+ */
 export async function AddConcours(formData: FormData) {
+  let isSuccess = false;
+  let targetID = "";
+
   try {
     const nom_concours = formData.get("nom_concours") as string;
-    // Conversion correcte du checkbox (HTML envoie "on" ou null)
-    const etat = formData.get("etat") === "on"; 
+    const etat = formData.get("etat") === "on";
     const concours_bio = formData.get("concours_bio") as string;
-    
-    // Dates : Prisma attend des objets Date valides
+    const adress_exam = formData.get("adress_exam") as string;
     const date_ouverture = new Date(formData.get("date_ouverture") as string);
     const limite_depot = new Date(formData.get("limite_depot") as string);
     const date_exam = new Date(formData.get("date_exam") as string);
-    
     const diplome_requis = formData.get("diplome_requis") as string;
-    const ees_id = formData.get("ees_id") as string; 
+    const ees_id = formData.get("ees_id") as string;
 
-    // Vérification de la validité des dates
+    targetID = ees_id;
+
     if (isNaN(date_ouverture.getTime()) || isNaN(limite_depot.getTime()) || isNaN(date_exam.getTime())) {
-        return { error: "Format de date invalide." };
+      return { error: "Format de date invalide." };
     }
 
     if (!nom_concours || !diplome_requis || !ees_id) {
@@ -35,24 +40,114 @@ export async function AddConcours(formData: FormData) {
         date_exam,
         limite_depot,
         diplome_requis,
-        // Utilisation de 'connect' pour lier à l'EES existant
-        ees: {
-          connect: { id: ees_id }
-        }
+        adress_exam,
+        ees: { connect: { id: ees_id } }
       }
     });
 
-    revalidatePath("/formconcours");
-    return { success: true };
-
+    revalidatePath(`/gestionnaireconcours/${ees_id}`);
+    isSuccess = true;
   } catch (error: any) {
-    console.error("Erreur détaillée :", error);
-    
-    // Erreur P2025 : L'ID de l'EES n'existe pas dans la base
-    if (error.code === 'P2025') {
-        return { error: "L'ID de l'établissement (EES) est introuvable." };
-    }
-    
-    return { error: "Une erreur technique est survenue lors de l'enregistrement." };
+    console.error("Erreur AddConcours:", error);
+    return { error: "Une erreur technique est survenue." };
   }
+
+  if (isSuccess) {
+    const ees = await prisma.eES.findUnique({
+      where: { id: targetID },
+      select: { nom_ees: true, tutelle_id: true }
+    });
+    redirect(`/gestionnaireconcours/${targetID}?nom_ees=${encodeURIComponent(ees?.nom_ees || "")}&tutelle_id=${ees?.tutelle_id}`);
+  }
+}
+
+/**
+ * MODIFIER UN CONCOURS
+ */
+export async function UpdateConcours(formData: FormData) {
+  let isSuccess = false;
+  let targetID = "";
+
+  try {
+    const id = formData.get("id") as string;
+    const nom_concours = formData.get("nom_concours") as string;
+    const etat = formData.get("etat") === "on" || formData.get("etat") === "true";
+    const concours_bio = formData.get("concours_bio") as string;
+    const adress_exam = formData.get("adress_exam") as string;
+    const date_ouverture = new Date(formData.get("date_ouverture") as string);
+    const limite_depot = new Date(formData.get("limite_depot") as string);
+    const date_exam = new Date(formData.get("date_exam") as string);
+    const diplome_requis = formData.get("diplome_requis") as string;
+    const ees_id = formData.get("ees_id") as string;
+
+    targetID = ees_id;
+
+    await prisma.concours.update({
+      where: { id },
+      data: {
+        nom_concours,
+        etat,
+        concours_bio,
+        date_ouverture,
+        date_exam,
+        limite_depot,
+        diplome_requis,
+        adress_exam,
+      }
+    });
+
+    revalidatePath(`/gestionnaireconcours/${ees_id}`);
+    isSuccess = true;
+  } catch (error: any) {
+    console.error("Erreur UpdateConcours:", error);
+    return { error: "Erreur lors de la mise à jour." };
+  }
+
+  if (isSuccess) {
+    const ees = await prisma.eES.findUnique({
+      where: { id: targetID },
+      select: { nom_ees: true, tutelle_id: true }
+    });
+    redirect(`/gestionnaireconcours/${targetID}?nom_ees=${encodeURIComponent(ees?.nom_ees || "")}&tutelle_id=${ees?.tutelle_id}`);
+  }
+}
+
+/**
+ * SUPPRIMER UN CONCOURS
+ */
+export async function DeleteConcours(id: string, ees_id: string) {
+  let isSuccess = false;
+  let eesInfo = null;
+
+  try {
+    eesInfo = await prisma.eES.findUnique({
+      where: { id: ees_id },
+      select: { nom_ees: true, tutelle_id: true }
+    });
+
+    await prisma.concours.delete({ where: { id } });
+    revalidatePath(`/gestionnaireconcours/${ees_id}`);
+    isSuccess = true;
+  } catch (error: any) {
+    // AJOUTEZ CECI : Laisse passer la redirection sans entrer dans le catch
+    if (error.digest?.includes("NEXT_REDIRECT")) throw error;
+
+    console.error("Erreur:", error);
+    return { error: "Erreur lors de la suppression." };
+  }
+
+  if (isSuccess) {
+    redirect(`/gestionnaireconcours/${ees_id}?nom_ees=${encodeURIComponent(eesInfo?.nom_ees || "")}&tutelle_id=${eesInfo?.tutelle_id}`);
+  }
+}
+
+export async function GetConcoursById(id: string) {
+  return await prisma.concours.findUnique({
+    where: { id },
+    include: {
+      ees: {
+        include: { tutelle: true }
+      }
+    }
+  });
 }
