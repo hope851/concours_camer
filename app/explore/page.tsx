@@ -86,7 +86,7 @@ export default function ExplorePage() {
       {/* Header - REFINED PREMIUM LOOK */}
       <div className="relative overflow-hidden pt-32 pb-16">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] -top-48 -right-48 animate-pulse" />
+          <div className="absolute w-150 h-150 bg-indigo-600/10 rounded-full blur-[120px] -top-48 -right-48 animate-pulse" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-b border-white/5 pb-12 animate-scale-in">
@@ -182,7 +182,9 @@ export default function ExplorePage() {
                 >
                   <option value="">Tous les domaines</option>
                   {domaines.map(domaine => (
-                    <option key={domaine} value={domaine}>{domaine}</option>
+                    <option key={domaine} value={domaine}>
+                      {domaine}
+                    </option>
                   ))}
                 </select>
               </div>

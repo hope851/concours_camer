@@ -162,7 +162,7 @@ export default function ProfilePage() {
                         <div className="glass-card rounded-[32px] p-8 border-white/5">
                             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 ml-2">Pilotage</h3>
                             <div className="space-y-3">
-                                <Link href={roleConfig.actionLink} className="w-full flex items-center justify-between p-5 rounded-[20px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/10 transition-all group">
+                                <Link href={roleConfig.actionLink} className="w-full flex items-center justify-between p-5 rounded-4xl bg-white/3 hover:bg-white/8 border border-white/5 hover:border-white/10 transition-all group">
                                     <div className="flex items-center gap-3">
                                         <LayoutDashboard size={20} className={roleConfig.color} />
                                         <span className="text-white font-bold tracking-tight">{roleConfig.actionLabel}</span>
@@ -173,7 +173,7 @@ export default function ProfilePage() {
                                 <button
                                     onClick={handleLogout}
                                     disabled={isLoggingOut}
-                                    className="w-full flex items-center gap-4 p-5 rounded-[20px] text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all font-black uppercase tracking-widest text-[10px] disabled:opacity-50"
+                                    className="w-full flex items-center gap-4 p-5 rounded-4xl text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all font-black uppercase tracking-widest text-[10px] disabled:opacity-50"
                                 >
                                     {isLoggingOut ? <Loader2 size={18} className="animate-spin" /> : <LogOut size={18} />}
                                     <span>Déconnexion sécurisée</span>
@@ -196,11 +196,11 @@ export default function ProfilePage() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="p-8 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-2 hover:border-white/10 transition-all group">
+                                <div className="p-8 rounded-[32px] bg-white/2 border border-white/5 space-y-2 hover:border-white/10 transition-all group">
                                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Identifiant Système</p>
                                     <p className="text-indigo-300 font-mono text-xs truncate opacity-60 group-hover:opacity-100 transition-opacity">{user.id}</p>
                                 </div>
-                                <div className="p-8 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-2 hover:border-white/10 transition-all group">
+                                <div className="p-8 rounded-[32px] bg-white/2 border border-white/5 space-y-2 hover:border-white/10 transition-all group">
                                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Membre depuis le</p>
                                     <p className="text-slate-300 font-bold">
                                         {new Date(user.date_inscription).toLocaleDateString('fr-FR', { dateStyle: 'long' })}
@@ -210,7 +210,7 @@ export default function ProfilePage() {
 
                             {/* Placeholder pour futures activités */}
                             <div className="mt-10 p-16 border-2 border-dashed border-white/5 rounded-[40px] flex flex-col items-center text-center group hover:border-indigo-500/20 transition-all">
-                                <div className="w-20 h-20 bg-white/[0.03] rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-500/10 transition-all">
+                                <div className="w-20 h-20 bg-white/3 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-500/10 transition-all">
                                     <Settings className="text-slate-600 group-hover:text-indigo-400 group-hover:rotate-90 transition-all duration-500" size={32} />
                                 </div>
                                 <h3 className="text-slate-300 font-black uppercase tracking-widest text-xs mb-3">Journal d'activité</h3>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { GetAllUsers, UpdateUserStatus, UpdateUserRole, GetCurrentUser } from '@/app/action/user';
-import { User, Mail, Power, Search, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { User, Mail, Power, Search, Loader2, ShieldCheck, ArrowLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 
@@ -152,6 +152,14 @@ export default function AdminUsersManagement() {
                     </div>
                 </div>
             </main>
+
+            <Link href={"/gestionnairetutelle"} className="w-full flex items-center justify-between p-5 rounded-4xl bg-white/3 hover:bg-white/8 border border-white/5 hover:border-white/10 transition-all group">
+                                    <div className="flex items-center gap-3 m-1">
+                                        <LayoutDashboard size={20}  />
+                                        <span className="text-white font-bold tracking-tight">Espace Gestion utilisateur</span>
+                                    </div>
+                                    <ChevronRight size={18} className="text-slate-500 group-hover:translate-x-1 transition-transform" />
+                                </Link>
         </div>
     );
 }
