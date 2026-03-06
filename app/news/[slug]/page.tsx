@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import { ArrowLeft, Calendar, User, Tag, Share2, ExternalLink, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 
 export default async function NewsDetailPage({ params }: { params: { slug: string } }) {
     const { slug } = await params;
@@ -54,6 +55,19 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
                     <h1 className="text-4xl md:text-7xl font-black text-white mb-10 leading-[1.1] tracking-tighter">
                         {news.title}
                     </h1>
+
+                    {news.image && (
+                        <div className="relative w-full h-[400px] mb-12 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-1000">
+                            <Image
+                                src={news.image}
+                                alt={news.title}
+                                fill
+                                className="object-cover"
+                                priority
+                            />
+                            <div className="absolute inset-0 bg-linear-to-t from-slate-950/40 to-transparent" />
+                        </div>
+                    )}
 
                     <div className="p-8 bg-white/[0.03] backdrop-blur-xl border-l-[6px] border-indigo-500 rounded-2xl rounded-l-none italic text-slate-300 text-xl leading-relaxed shadow-2xl animate-in fade-in slide-in-from-right-8 duration-1000 delay-300 fill-mode-both">
                         {news.excerpt}

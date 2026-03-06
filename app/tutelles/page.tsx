@@ -10,6 +10,7 @@ interface Tutelle {
   nom_tutelle: string;
   nom_tutelle_tech?: string | null;
   tutelle_bio?: string | null;
+  region?: string | null;
   _count?: { ees: number };
 }
 
@@ -105,8 +106,12 @@ export default function TutellesPage() {
                 </div>
 
                 <div className="mt-4 flex items-center gap-3 text-slate-300">
-                  <MapPin className="w-4 h-4 text-pink-400" />
+
                   <span className="text-sm">{t.tutelle_bio ? t.tutelle_bio.slice(0, 80) : "—"}</span>
+                </div>
+                <div className="mt-4 flex items-center gap-3 text-slate-300">
+                  <MapPin className="w-4 h-4 text-pink-400" />
+                  <span className="text-sm">{t.region || "Région non spécifiée"}</span>
                 </div>
 
                 <ArrowRight className="w-5 h-5 text-indigo-400 absolute bottom-6 right-6 group-hover:translate-x-1 transition-transform" />

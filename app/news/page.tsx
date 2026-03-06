@@ -22,8 +22,8 @@ export default async function NewsPage() {
             {/* Hero Section */}
             <div className="relative pt-32 pb-20 overflow-hidden border-b border-white/5">
                 <div className="absolute inset-0">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-125 h-125 bg-indigo-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-125 h-125 bg-purple-500/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
                 </div>
 
                 <div className="relative max-w-7xl mx-auto px-4 text-center">
@@ -32,7 +32,7 @@ export default async function NewsPage() {
                         Actualités et Opportunités
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-1000">
-                        Le portail de <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">l'information</span>
+                        Le portail de <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400">l'information</span>
                     </h1>
                     <p className="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000">
                         Suivez en temps réel les communiqués officiels, les dates de concours et les opportunités académiques au Cameroun.
@@ -50,8 +50,18 @@ export default async function NewsPage() {
                                 className="group relative flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden hover:border-indigo-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 animate-in fade-in slide-in-from-bottom-8 fill-mode-both"
                                 style={{ animationDelay: `${idx * 100}ms` }}
                             >
-                                {/* Hover Glow */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-transparent to-purple-500/0 group-hover:from-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500" />
+                                {/* Image Thumbnail */}
+                                {news.image && (
+                                    <div className="relative h-48 w-full overflow-hidden border-b border-white/5">
+                                        <Image
+                                            src={news.image}
+                                            alt={news.title}
+                                            fill
+                                            className="object-cover group-hover:scale-110 transition-transform duration-700"
+                                        />
+                                        <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 to-transparent opacity-60" />
+                                    </div>
+                                )}
 
                                 {/* Content */}
                                 <div className="relative p-8 flex flex-col h-full z-10">
@@ -88,7 +98,7 @@ export default async function NewsPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-40 border border-dashed border-white/10 rounded-[3rem] bg-white/[0.02] backdrop-blur-sm animate-in fade-in zoom-in duration-1000">
+                    <div className="text-center py-40 border border-dashed border-white/10 rounded-[3rem] bg-white/2 backdrop-blur-sm animate-in fade-in zoom-in duration-1000">
                         <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex items-center justify-center mx-auto mb-8 text-indigo-400">
                             <Clock size={32} />
                         </div>

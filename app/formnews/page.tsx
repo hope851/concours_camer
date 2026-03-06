@@ -8,15 +8,15 @@ export default function CreateNewsForm() {
         <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
             {/* Ambient background glows */}
             <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] -top-48 -right-48 animate-pulse" />
-                <div className="absolute w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] -bottom-48 -left-48 animate-pulse" />
+                <div className="absolute w-150 h-150 bg-purple-600/10 rounded-full blur-[120px] -top-48 -right-48 animate-pulse" />
+                <div className="absolute w-150 h-150 bg-blue-600/10 rounded-full blur-[120px] -bottom-48 -left-48 animate-pulse" />
             </div>
 
             <div className="relative w-full max-w-3xl z-10 animate-scale-in">
                 <div className="glass-card rounded-[40px] shadow-3xl overflow-hidden border-white/5">
 
                     {/* Header with gradient */}
-                    <div className="relative p-12 bg-linear-to-br from-white/[0.08] to-transparent border-b border-white/10">
+                    <div className="relative p-12 bg-linear-to-br from-white/8 to-transparent border-b border-white/10">
                         <div className="absolute top-0 right-0 p-12 opacity-10">
                             <Newspaper size={120} className="text-white" />
                         </div>
@@ -122,16 +122,40 @@ export default function CreateNewsForm() {
                                     />
                                 </div>
 
-                                {/* Image URL */}
+                                {/* Source URL */}
                                 <div className="space-y-3">
                                     <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <ImageIcon size={14} className="text-blue-400" /> URL Image (Optionnel)
+                                        <LinkIcon size={14} className="text-indigo-400" /> URL de la source
                                     </label>
                                     <input
-                                        name="image"
+                                        name="sourceUrl"
                                         placeholder="https://..."
                                         className="glass-input w-full p-5 rounded-2xl"
                                     />
+                                </div>
+
+                                {/* Image File Upload */}
+                                <div className="space-y-3">
+                                    <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <ImageIcon size={14} className="text-blue-400" /> Image de couverture
+                                    </label>
+                                    <div className="relative group">
+                                        <input
+                                            type="file"
+                                            name="image"
+                                            accept="image/*"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        />
+                                        <div className="glass-input w-full p-5 rounded-2xl flex items-center gap-4 text-slate-400 group-hover:bg-white/5 transition-colors border-dashed border-2 border-white/10 group-hover:border-blue-500/30">
+                                            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
+                                                <ImageIcon size={20} />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-200">Choisir une image</span>
+                                                <span className="text-[10px] uppercase tracking-wider">JPG, PNG ou WebP (Max 5Mo)</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

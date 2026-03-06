@@ -52,7 +52,6 @@ export default async function Home() {
   const stats = await getStats();
 
   return (
-
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-950">
       <Navbar />
 
@@ -80,10 +79,10 @@ export default async function Home() {
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
             <Link
-              href="/tutelles"
+              href="#calendrier"
               className="px-10 py-5 bg-linear-to-r from-indigo-500 to-purple-600 text-white font-black rounded-2xl shadow-2xl hover:shadow-indigo-500/40 transition-all duration-300 flex items-center justify-center gap-3 hover:scale-105 active:scale-95 uppercase tracking-widest text-sm"
             >
-              Explorer les Institutions <ArrowRight className="w-5 h-5" />
+              Voir le Calendrier <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
               href="/concours"
@@ -94,18 +93,18 @@ export default async function Home() {
           </div>
 
           {/* Quick stats in hero - REFINED */}
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-indigo-500/30 transition-colors">
+          <div className="flex gap-8 max-w-2xl mx-auto justify-center">
+            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-indigo-500/30 transition-colors w-40">
               <p className="text-3xl font-black text-indigo-400 mb-1">{stats.eesCount}+</p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Établissements</p>
             </div>
-            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-purple-500/30 transition-colors">
-              <p className="text-3xl font-black text-purple-400 mb-1">{stats.filiereCount}+</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filières</p>
-            </div>
-            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-pink-500/30 transition-colors">
+            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-pink-500/30 transition-colors w-40">
               <p className="text-3xl font-black text-pink-400 mb-1">{stats.concoursCount}+</p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Concours</p>
+            </div>
+            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-cyan-500/30 transition-colors w-40">
+              <p className="text-3xl font-black text-cyan-400 mb-1">{stats.tutelleCount}+</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tutelles</p>
             </div>
           </div>
         </div>
@@ -118,7 +117,7 @@ export default async function Home() {
           <p className="text-slate-400">Découvrez l'ampleur de notre plateforme d'éducation</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="group p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-indigo-500/50 transition-all duration-300 hover:bg-indigo-500/10">
             <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-600/40 transition">
               <BookOpen className="w-6 h-6 text-indigo-400" />
@@ -126,15 +125,6 @@ export default async function Home() {
             <p className="text-slate-400 text-sm font-semibold mb-2">ÉTABLISSEMENTS</p>
             <h3 className="text-4xl font-black text-white">{stats.eesCount}</h3>
             <p className="text-xs text-slate-500 mt-2">Universités & Écoles</p>
-          </div>
-
-          <div className="group p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:bg-purple-500/10">
-            <div className="w-12 h-12 bg-purple-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-600/40 transition">
-              <Zap className="w-6 h-6 text-purple-400" />
-            </div>
-            <p className="text-slate-400 text-sm font-semibold mb-2">FILIÈRES</p>
-            <h3 className="text-4xl font-black text-white">{stats.filiereCount}</h3>
-            <p className="text-xs text-slate-500 mt-2">Domaines d'étude</p>
           </div>
 
           <div className="group p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:bg-pink-500/10">
@@ -158,7 +148,7 @@ export default async function Home() {
       </section>
 
       {/* CALENDRIER DE CONCOURS */}
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
+      <section id="calendrier" className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32 scroll-mt-32">
         <div className="mb-12">
           <h2 className="text-4xl font-black text-white mb-2">Calendrier des Concours</h2>
           <p className="text-slate-400">Planifiez votre parcours académique avec les dates des concours</p>
@@ -230,149 +220,155 @@ export default async function Home() {
             );
           })}
         </div>
-      </section>
+      </section >
 
       {/* ÉTABLISSEMENTS TOP */}
-      {stats.topEES.length > 0 && (
-        <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
-          <div className="mb-12">
-            <h2 className="text-4xl font-black text-white mb-2">Établissements Populaires</h2>
-            <p className="text-slate-400">Découvrez les institutions les plus actives en concours</p>
-          </div>
+      {
+        stats.topEES.length > 0 && (
+          <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
+            <div className="mb-12">
+              <h2 className="text-4xl font-black text-white mb-2">Établissements Populaires</h2>
+              <p className="text-slate-400">Découvrez les institutions les plus actives en concours</p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {stats.topEES.map((ees: any) => (
-              <Link
-                key={ees.id}
-                href={`/explore/${ees.id}`}
-                className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/10 p-6 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/20"
-              >
-                <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {stats.topEES.map((ees: any) => (
+                <Link
+                  key={ees.id}
+                  href={`/explore/${ees.id}`}
+                  className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/10 p-6 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/20"
+                >
+                  <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
 
-                <div className="relative">
-                  <div className="w-10 h-10 bg-indigo-600/30 rounded-lg flex items-center justify-center mb-4">
-                    <BookOpen className="w-5 h-5 text-indigo-300" />
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-indigo-600/30 rounded-lg flex items-center justify-center mb-4">
+                      <BookOpen className="w-5 h-5 text-indigo-300" />
+                    </div>
+
+                    <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-indigo-300 transition">{ees.nom_ees}</h3>
+
+                    <div className="space-y-3 pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <p className="text-slate-500 text-xs font-semibold">Concours ouverts</p>
+                        <p className="text-white font-bold">{ees._count?.concours || 0}</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-slate-500 text-xs font-semibold">Concours</p>
+                        <p className="text-white font-bold">{ees._count?.concours || 0}</p>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-indigo-300 transition">{ees.nom_ees}</h3>
-
-                  <div className="space-y-3 pt-4 border-t border-white/10">
-                    <div className="flex items-center justify-between">
-                      <p className="text-slate-500 text-xs font-semibold">Filières</p>
-                      <p className="text-white font-bold">{ees._count?.filieres || 0}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-slate-500 text-xs font-semibold">Concours</p>
-                      <p className="text-white font-bold">{ees._count?.concours || 0}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <ArrowRight className="absolute bottom-6 right-6 w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+                  <ArrowRight className="absolute bottom-6 right-6 w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )
+      }
 
       {/* DERNIERS EES */}
-      {stats.recentEES.length > 0 && (
-        <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
-          <div className="mb-12">
-            <h2 className="text-4xl font-black text-white mb-2">Nouvelles Institutions</h2>
-            <p className="text-slate-400">Les derniers établissements ajoutés à notre plateforme</p>
-          </div>
+      {
+        stats.recentEES.length > 0 && (
+          <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
+            <div className="mb-12">
+              <h2 className="text-4xl font-black text-white mb-2">Nouvelles Institutions</h2>
+              <p className="text-slate-400">Les derniers établissements ajoutés à notre plateforme</p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {stats.recentEES.map((ees: any) => (
-              <Link
-                key={ees.id}
-                href={`/explore/${ees.id}`}
-                className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/10 p-8 hover:border-indigo-500/50 transition-all duration-300"
-              >
-                <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {stats.recentEES.map((ees: any) => (
+                <Link
+                  key={ees.id}
+                  href={`/explore/${ees.id}`}
+                  className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/10 p-8 hover:border-indigo-500/50 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
 
-                <div className="relative">
-                  <div className="inline-block px-3 py-1 rounded-full bg-indigo-600/30 border border-indigo-400/30 text-indigo-300 text-xs font-bold mb-4">
-                    {ees.ees_type}
+                  <div className="relative">
+                    <div className="inline-block px-3 py-1 rounded-full bg-indigo-600/30 border border-indigo-400/30 text-indigo-300 text-xs font-bold mb-4">
+                      {ees.ees_type}
+                    </div>
+
+                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-300 transition">{ees.nom_ees}</h3>
+
+                    <p className="text-slate-400 text-sm mb-4 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-pink-400" />
+                      {ees.tutelle?.nom_tutelle || "N/A"}
+                    </p>
+
+                    <div className="flex gap-4 pt-4 border-t border-white/10">
+                      <div>
+                        <p className="text-slate-500 text-xs font-semibold">Concours disponibles</p>
+                        <p className="text-white font-bold text-lg">{ees._count?.concours || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 text-xs font-semibold">Concours</p>
+                        <p className="text-white font-bold text-lg">{ees._count?.concours || 0}</p>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-300 transition">{ees.nom_ees}</h3>
-
-                  <p className="text-slate-400 text-sm mb-4 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-pink-400" />
-                    {ees.tutelle?.nom_tutelle || "N/A"}
-                  </p>
-
-                  <div className="flex gap-4 pt-4 border-t border-white/10">
-                    <div>
-                      <p className="text-slate-500 text-xs font-semibold">Filières</p>
-                      <p className="text-white font-bold text-lg">{ees._count?.filieres || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-xs font-semibold">Concours</p>
-                      <p className="text-white font-bold text-lg">{ees._count?.concours || 0}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <ArrowRight className="absolute bottom-8 right-8 w-5 h-5 text-indigo-400 group-hover:translate-x-2 transition-transform" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+                  <ArrowRight className="absolute bottom-8 right-8 w-5 h-5 text-indigo-400 group-hover:translate-x-2 transition-transform" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )
+      }
 
       {/* ACTUALITÉS RÉCENTES */}
-      {stats.latestNews.length > 0 && (
-        <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="text-4xl font-black text-white mb-2">Dernières Actualités</h2>
-              <p className="text-slate-400">Restez informé des derniers communiqués et opportunités</p>
-            </div>
-            <Link
-              href="/news"
-              className="hidden sm:flex items-center gap-2 text-indigo-400 font-bold hover:text-indigo-300 transition"
-            >
-              Voir tout <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {stats.latestNews.map((news: any) => (
+      {
+        stats.latestNews.length > 0 && (
+          <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-4xl font-black text-white mb-2">Dernières Actualités</h2>
+                <p className="text-slate-400">Restez informé des derniers communiqués et opportunités</p>
+              </div>
               <Link
-                key={news.id}
-                href={`/news/${news.slug}`}
-                className="group flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300"
+                href="/news"
+                className="hidden sm:flex items-center gap-2 text-indigo-400 font-bold hover:text-indigo-300 transition"
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                      {news.category}
-                    </span>
-                    {news.isUrgent && (
-                      <span className="flex items-center gap-1 text-[10px] font-black text-rose-400 uppercase tracking-tighter animate-pulse">
-                        <Zap size={10} /> Urgent
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-3 group-hover:text-indigo-300 transition line-clamp-2 leading-tight">
-                    {news.title}
-                  </h3>
-                  <p className="text-slate-400 text-xs mb-6 line-clamp-2 leading-relaxed">
-                    {news.excerpt}
-                  </p>
-                  <div className="mt-auto flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                    <span>{new Intl.DateTimeFormat("fr-FR").format(new Date(news.createdAt))}</span>
-                    <span className="text-indigo-400 group-hover:translate-x-1 transition-transform">Lire suite →</span>
-                  </div>
-                </div>
+                Voir tout <ArrowRight size={16} />
               </Link>
-            ))}
-          </div>
-        </section>
-      )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {stats.latestNews.map((news: any) => (
+                <Link
+                  key={news.id}
+                  href={`/news/${news.slug}`}
+                  className="group flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                        {news.category}
+                      </span>
+                      {news.isUrgent && (
+                        <span className="flex items-center gap-1 text-[10px] font-black text-rose-400 uppercase tracking-tighter animate-pulse">
+                          <Zap size={10} /> Urgent
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-3 group-hover:text-indigo-300 transition line-clamp-2 leading-tight">
+                      {news.title}
+                    </h3>
+                    <p className="text-slate-400 text-xs mb-6 line-clamp-2 leading-relaxed">
+                      {news.excerpt}
+                    </p>
+                    <div className="mt-auto flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                      <span>{new Intl.DateTimeFormat("fr-FR").format(new Date(news.createdAt))}</span>
+                      <span className="text-indigo-400 group-hover:translate-x-1 transition-transform">Lire suite →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )
+      }
 
       {/* AVANTAGES */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
@@ -495,6 +491,6 @@ export default async function Home() {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }

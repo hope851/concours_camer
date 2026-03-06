@@ -35,7 +35,7 @@ export default function TutelleCard({ data }: TutelleProps) {
           {/* Badge Nombre discret mais chic */}
           <div className="flex items-baseline gap-1 bg-indigo-50 px-3 py-1 rounded-xl">
             <span className="text-indigo-600 font-black text-sm">{data._count?.ees || 0}</span>
-            <span className="text-indigo-400 text-[8px] font-bold uppercase">Campus</span>
+            <span className="text-indigo-400 text-[8px] font-bold uppercase">EES</span>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export default function TutelleCard({ data }: TutelleProps) {
             href={`/getionnaireees/${data.id}?nom_tutelle=${encodeURIComponent(data.nom_tutelle)}`}
             className="flex items-center justify-between w-full p-2 pl-6 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl transition-all duration-300 group/link"
           >
-            <span className="text-[11px] font-black uppercase tracking-[0.15em]">Gérer les campus</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.15em]">Gérer les etablissements</span>
             <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center group-hover/link:bg-white/20 transition-colors">
               <ChevronRight size={18} />
             </div>

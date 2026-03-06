@@ -31,6 +31,19 @@ export async function AddConcours(formData: FormData) {
       return { error: "Veuillez remplir tous les champs obligatoires." };
     }
 
+    if (limite_depot > date_exam) {
+      return { error: "La date limite de dépôt doit être avant la date de l'examen veuillez verifier les informations entrer" };
+    }
+    if (date_ouverture > limite_depot) {
+      return { error: "La date d'ouverture doit être avant la date limite de dépôt veuillez verifier les informations entrer" };
+    }
+    if (date_exam < limite_depot) {
+      return { error: "La date de l'examen doit être après la date limite de dépôt veuillez verifier les informations entrer" };
+    }
+    if (date_exam < date_ouverture) {
+      return { error: "La date de l'examen doit être après la date d'ouverture veuillez verifier les informations entrer" };
+    }
+
     await prisma.concours.create({
       data: {
         nom_concours,
@@ -81,6 +94,20 @@ export async function UpdateConcours(formData: FormData) {
     const ees_id = formData.get("ees_id") as string;
 
     targetID = ees_id;
+
+
+    if (limite_depot > date_exam) {
+      return { error: "La date limite de dépôt doit être avant la date de l'examen veuillez verifier les informations entrer " };
+    }
+    if (date_ouverture > limite_depot) {
+      return { error: "La date d'ouverture doit être avant la date limite de dépôt veuillez verifier les informations entrer" };
+    }
+    if (date_exam < limite_depot) {
+      return { error: "La date de l'examen doit être après la date limite de dépôt veuillez verifier les informations entrer" };
+    }
+    if (date_exam < date_ouverture) {
+      return { error: "La date de l'examen doit être après la date d'ouverture veuillez verifier les informations entrer" };
+    }
 
     await prisma.concours.update({
       where: { id },

@@ -3,26 +3,48 @@
 import prisma from "@/lib/prisma"; // Ton instance Prisma
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { writeFile } from "fs/promises";
+import { join } from "path";
 
 // 1. CRÉATION
 export async function createNewsAction(formData: FormData) {
   const title = formData.get("title") as string;
+  const imageFile = formData.get("image") as File;
+  let imagePath = "";
+
+  if (imageFile && imageFile.size > 0) {
+    const bytes = await imageFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Créer un nom de fichier unique
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const fileName = `${uniqueSuffix}-${imageFile.name.replace(/\s+/g, '-')}`;
+    const uploadDir = join(process.cwd(), "public", "uploads");
+    const path = join(uploadDir, fileName);
+
+    await writeFile(path, buffer);
+    imagePath = `/uploads/${fileName}`;
+  }
 
   await prisma.news.create({
     data: {
       title,
-      slug: title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-'),
+      slug: title.toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Enlever les accents
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-'),
       excerpt: formData.get("excerpt") as string,
       content: formData.get("content") as string,
       category: formData.get("category") as string,
       isUrgent: formData.get("isUrgent") === "on",
       sourceName: formData.get("sourceName") as string,
       sourceUrl: formData.get("sourceUrl") as string,
-      image: formData.get("image") as string, // URL de l'image
+      image: imagePath || null, // Chemin local de l'image
     }
   });
 
   revalidatePath("/profile/gestion");
+  revalidatePath("/news");
   redirect("/profile/gestion"); // Retour au dashboard après création
 }
 
