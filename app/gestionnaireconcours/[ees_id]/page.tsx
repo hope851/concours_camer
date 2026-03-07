@@ -3,11 +3,11 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, LayoutGrid, ArrowLeft } from "lucide-react";
 
-export default async function GestionConcoursPage({ 
+export default async function GestionConcoursPage({
   params,
   searchParams
-}: { 
-  params: Promise<{ ees_id: string }> 
+}: {
+  params: Promise<{ ees_id: string }>
   searchParams: Promise<{ nom_ees?: string, tutelle_id?: string }> // Ajout de tutelle_id si tu veux un retour précis
 }) {
   const { nom_ees, tutelle_id } = await searchParams;
@@ -15,7 +15,7 @@ export default async function GestionConcoursPage({
 
   const concours = await prisma.concours.findMany({
     where: { ees_id: tid },
-    include: { 
+    include: {
       ees: {
         select: {
           nom_ees: true,
@@ -30,11 +30,10 @@ export default async function GestionConcoursPage({
   const AddButton = ({ outline = false }: { outline?: boolean }) => (
     <Link href={`/formconcours?ees_id=${tid}&nom_ees=${encodeURIComponent(nom_ees || "")}&tutelle_id=${tutelle_id || ""}`} className="inline-block">
       <button
-        className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-sm ${
-          outline
+        className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-sm ${outline
             ? "bg-card border-2 border-border text-muted-foreground hover:bg-background"
             : "bg-primary text-primary-foreground hover:bg-primary/90 hover:-translate-y-1 active:scale-95"
-        }`}
+          }`}
       >
         <Plus className="h-5 w-5" />
         Ajouter un concours
@@ -67,13 +66,13 @@ export default async function GestionConcoursPage({
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-4">
               {/* LIEN DE RETOUR CORRIGÉ */}
-              <Link 
-  href={tutelle_id ? `/getionnaireees/${tutelle_id}` : "/gestionnairetutelle"} 
-  className="group inline-flex items-center text-sm font-bold text-primary hover:text-primary/80 transition-all"
->
-                <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" style={{ color: 'var(--color-primary)' }} /> 
-  Retour aux établissements
-</Link>
+              <Link
+                href={tutelle_id ? `/gestionnaireees/${tutelle_id}` : "/gestionnairetutelle"}
+                className="group inline-flex items-center text-sm font-bold text-primary hover:text-primary/80 transition-all"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover:-translate-x-1" style={{ color: 'var(--color-primary)' }} />
+                Retour aux établissements
+              </Link>
 
               <div className="space-y-1">
                 <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: 'var(--color-muted)' }}>{nom_ees}</p>
@@ -105,7 +104,7 @@ export default async function GestionConcoursPage({
         </div>
 
         {/* Footer avec rappel d'action */}
-          <div className="mt-24 text-center pt-16 border-t border-border">
+        <div className="mt-24 text-center pt-16 border-t border-border">
           <p className="font-bold mb-8 uppercase text-[10px] tracking-[0.3em] text-muted-foreground">Fin de la liste des sessions</p>
           <AddButton outline />
         </div>

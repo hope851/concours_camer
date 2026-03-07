@@ -1,8 +1,9 @@
 import { getNewsAction } from "@/app/action/news";
 import Navbar from "@/components/Navbar";
-import { Calendar, Tag, ArrowRight, AlertCircle, Clock } from "lucide-react";
+import { Calendar, ArrowRight, AlertCircle, Clock } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+// On importe ton nouveau composant à la place de next/image
+import CloudinaryImage from "@/components/CloudinaryImage"; 
 
 export default async function NewsPage() {
     const allNews = await getNewsAction();
@@ -27,14 +28,14 @@ export default async function NewsPage() {
                 </div>
 
                 <div className="relative max-w-7xl mx-auto px-4 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold mb-6">
                         <Clock size={14} />
                         Actualités et Opportunités
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                    <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight">
                         Le portail de <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400">l'information</span>
                     </h1>
-                    <p className="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                    <p className="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed">
                         Suivez en temps réel les communiqués officiels, les dates de concours et les opportunités académiques au Cameroun.
                     </p>
                 </div>
@@ -47,13 +48,13 @@ export default async function NewsPage() {
                             <Link
                                 key={news.id}
                                 href={`/news/${news.slug}`}
-                                className="group relative flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden hover:border-indigo-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 animate-in fade-in slide-in-from-bottom-8 fill-mode-both"
+                                className="group relative flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden hover:border-indigo-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10"
                                 style={{ animationDelay: `${idx * 100}ms` }}
                             >
-                                {/* Image Thumbnail */}
+                                {/* Image Thumbnail utilisant CloudinaryImage */}
                                 {news.image && (
                                     <div className="relative h-48 w-full overflow-hidden border-b border-white/5">
-                                        <Image
+                                        <CloudinaryImage
                                             src={news.image}
                                             alt={news.title}
                                             fill
@@ -98,12 +99,12 @@ export default async function NewsPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-40 border border-dashed border-white/10 rounded-[3rem] bg-white/2 backdrop-blur-sm animate-in fade-in zoom-in duration-1000">
+                    <div className="text-center py-40 border border-dashed border-white/10 rounded-[3rem] bg-white/2 backdrop-blur-sm">
                         <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex items-center justify-center mx-auto mb-8 text-indigo-400">
                             <Clock size={32} />
                         </div>
                         <h2 className="text-3xl font-black text-white mb-3">Aucune actualité</h2>
-                        <p className="text-slate-500 max-w-xs mx-auto font-medium">Revenez bientôt pour ne rien manquer de l'actualité académique.</p>
+                        <p className="text-slate-500 max-w-xs mx-auto font-medium">Revenez bientôt pour ne rien manquer.</p>
                     </div>
                 )}
             </div>

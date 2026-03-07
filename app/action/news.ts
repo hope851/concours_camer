@@ -5,6 +5,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { writeFile } from "fs/promises";
 import { join } from "path";
+import { v2 as cloudinary } from "cloudinary";
+
+
+// Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // 1. CRÉATION
 export async function createNewsAction(formData: FormData) {
@@ -12,19 +21,24 @@ export async function createNewsAction(formData: FormData) {
   const imageFile = formData.get("image") as File;
   let imagePath = "";
 
-  if (imageFile && imageFile.size > 0) {
-    const bytes = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+   const file = formData.get("image") as File;
 
-    // Créer un nom de fichier unique
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const fileName = `${uniqueSuffix}-${imageFile.name.replace(/\s+/g, '-')}`;
-    const uploadDir = join(process.cwd(), "public", "uploads");
-    const path = join(uploadDir, fileName);
-
-    await writeFile(path, buffer);
-    imagePath = `/uploads/${fileName}`;
+  if (!file || file.size === 0) {
+    throw new Error("Fichier manquant");
   }
+  // 1. Convertir le fichier en Buffer pour Cloudinary
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const uploadResponse: any = await new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder: "mes_publications" }, // Optionnel: crée un dossier
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    ).end(buffer);
+  });
 
   await prisma.news.create({
     data: {
@@ -39,9 +53,8 @@ export async function createNewsAction(formData: FormData) {
       isUrgent: formData.get("isUrgent") === "on",
       sourceName: formData.get("sourceName") as string,
       sourceUrl: formData.get("sourceUrl") as string,
-      image: imagePath || null, // Chemin local de l'image
-    }
-  });
+      image: uploadResponse.secure_url, // L'URL magique
+  }, });
 
   revalidatePath("/profile/gestion");
   revalidatePath("/news");

@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 
@@ -24,11 +24,25 @@ export default function ContactPage() {
     setLoading(true);
 
     try {
-      // Simulate form submission
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setSubmitted(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      setTimeout(() => setSubmitted(false), 5000);
+      // AJOUT DE /ajax/ POUR ÉVITER LA REDIRECTION VERS UNE PAGE EXTERNE
+      const response = await fetch("https://formsubmit.co/rayanngoula@gmail.com", {
+        method: "POST",
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          ...formData,
+          _subject: `Nouveau message de ${formData.name}: ${formData.subject}`,
+          _captcha: "false" // DÉSACTIVE LE CAPTCHA POUR TESTER DIRECTEMENT
+        })
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+        setTimeout(() => setSubmitted(false), 5000);
+      }
     } catch (error) {
       console.error("Erreur d'envoi:", error);
     } finally {
@@ -38,7 +52,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-indigo-900 to-slate-900">
-        <Navbar />
+      <Navbar />
 
       {/* Header */}
       <div className="bg-black/40 backdrop-blur-md border-b border-white/10 py-12">
@@ -54,8 +68,7 @@ export default function ContactPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Contact Info */}
           <div>
-            <h2 className="text-2xl font-black text-white mb-6">Informations de contact</h2>
-
+            <h2 className="text-2xl font-black text-white mb-6">Informations</h2>
             <div className="space-y-6">
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center shrink-0">
@@ -63,10 +76,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-slate-400 text-sm font-semibold mb-1">Email</p>
-                  <a
-                    href="mailto:balepahope@gmail.com"
-                    className="text-white hover:text-indigo-300 transition"
-                  >
+                  <a href="mailto:balepahope@gmail.com" className="text-white hover:text-indigo-300 transition">
                     contact@concours-camer.cm
                   </a>
                 </div>
@@ -78,10 +88,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-slate-400 text-sm font-semibold mb-1">Téléphone</p>
-                  <a
-                    href="tel:+237695123456"
-                    className="text-white hover:text-indigo-300 transition"
-                  >
+                  <a href="tel:+237695123456" className="text-white hover:text-indigo-300 transition">
                     +237 6 95 12 34 56
                   </a>
                 </div>
@@ -93,129 +100,95 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-slate-400 text-sm font-semibold mb-1">Localisation</p>
-                  <p className="text-white">
-                    Yaoundé, Cameroun
-                  </p>
+                  <p className="text-white">Yaoundé, Cameroun</p>
                 </div>
               </div>
-            </div>
-
-            {/* Response Time */}
-            <div className="mt-8 p-6 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-              <p className="text-slate-400 text-sm mb-3">
-                <strong className="text-white">Temps de réponse :</strong>
-              </p>
-              <p className="text-slate-300 text-sm">
-                Nous répondons généralement dans les 24-48 heures.
-              </p>
             </div>
           </div>
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Name */}
               <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Nom complet
-                </label>
+                <label className="block text-sm font-semibold text-white mb-2">Nom complet</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition"
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:border-indigo-500 outline-none transition"
                   placeholder="Votre nom"
                 />
               </div>
 
-              {/* Email */}
               <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Adresse email
-                </label>
+                <label className="block text-sm font-semibold text-white mb-2">Email</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition"
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:border-indigo-500 outline-none transition"
                   placeholder="votre@email.com"
                 />
               </div>
 
-              {/* Subject */}
               <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Sujet
-                </label>
+                <label className="block text-sm font-semibold text-white mb-2">Sujet</label>
                 <select
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition"
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:border-indigo-500 outline-none transition"
                 >
                   <option value="">Sélectionnez un sujet</option>
                   <option value="general">Question générale</option>
                   <option value="error">Signaler une erreur</option>
-                  <option value="missing">Information manquante</option>
                   <option value="partnership">Partenariat</option>
-                  <option value="other">Autre</option>
                 </select>
               </div>
 
-              {/* Message */}
               <div>
-                <label className="block text-sm font-semibold text-white mb-2">
-                  Message
-                </label>
+                <label className="block text-sm font-semibold text-white mb-2">Message</label>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
                   required
                   rows={6}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition resize-none"
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:border-indigo-500 outline-none transition resize-none"
                   placeholder="Votre message..."
                 />
               </div>
 
-              {/* Submit */}
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
-                <Send className="w-5 h-5" />
-                {loading ? "Envoi..." : "Envoyer le message"}
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Envoyer le message
+                  </>
+                )}
               </button>
 
-              {/* Success Message */}
+              {/* Success Message UI */}
               {submitted && (
-                <div className="p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-lg">
-                  <p className="text-emerald-300 font-semibold">
-                    ✓ Votre message a été envoyé avec succès !
-                  </p>
+                <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 font-bold animate-in fade-in slide-in-from-top-2">
+                  <CheckCircle2 size={20} />
+                  Votre message a été envoyé avec succès !
                 </div>
               )}
             </form>
           </div>
-        </div>
-
-        {/* FAQ Link */}
-        <div className="text-center p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
-          <p className="text-slate-400 mb-4">
-            Vous cherchez des réponses rapides ?
-          </p>
-          <a
-            href="/faq"
-            className="inline-block text-indigo-300 hover:text-indigo-200 font-semibold transition"
-          >
-            Consultez notre FAQ →
-          </a>
         </div>
       </div>
     </div>

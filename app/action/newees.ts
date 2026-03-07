@@ -2,6 +2,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { GetCurrentUser } from "./user";
 
 /**
  * AJOUTER UNE EES
@@ -11,24 +12,29 @@ export async function AddEes(formData: FormData) {
   let nomTutelle = "";
 
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") {
+      return { error: "Seuls les administrateurs peuvent créer un établissement." };
+    }
+
     const nom_ees = formData.get("nom_ees") as string;
     const ees_bio = (formData.get("ees_bio") as string) || "";
     const ville = formData.get("ville") as string;
     const site_ees = (formData.get("site_ees") as string) || "";
     const domaine = formData.get("domaine") as string;
     const ees_type = formData.get("ees_type") as string;
-    const tutelleId = formData.get("tutelleId") as string; // Match avec le name du client
+    const tutelle_id = formData.get("tutelle_id") as string; // Unified naming
 
     const filieresRaw = formData.get("filieres") as string;
     const filieresArray = filieresRaw
       ? filieresRaw.split(",").map((f) => f.trim()).filter(Boolean)
       : [];
 
-    if (!nom_ees || !ville || !domaine || !ees_type || !tutelleId) {
+    if (!nom_ees || !ville || !domaine || !ees_type || !tutelle_id) {
       return { error: "Champs obligatoires manquants." };
     }
 
-    targetId = tutelleId;
+    targetId = tutelle_id;
 
     await prisma.$transaction(async (tx) => {
       await tx.eES.create({
@@ -39,7 +45,7 @@ export async function AddEes(formData: FormData) {
           site_ees,
           domaine,
           ees_type: ees_type as any,
-          tutelle: { connect: { id: tutelleId } },
+          tutelle: { connect: { id: tutelle_id } },
           filieres: {
             create: filieresArray.map((nom) => ({ nom_filiere: nom })),
           },
@@ -53,7 +59,7 @@ export async function AddEes(formData: FormData) {
     });
     nomTutelle = tutelle?.nom_tutelle || "Tutelle";
 
-    revalidatePath(`/gestionnaire/${targetId}`);
+    revalidatePath(`/gestionnaireees/${targetId}`);
   } catch (error: any) {
     if (error.code === "P2002") return { error: "Une filière avec ce nom existe déjà." };
     console.error(error);
@@ -61,7 +67,7 @@ export async function AddEes(formData: FormData) {
   }
 
   // Redirection hors du try/catch
-  redirect(`/getionnaireees/${targetId}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
+  redirect(`/gestionnaireees/${targetId}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
 }
 
 /**
@@ -114,13 +120,13 @@ export async function UpdateEes(formData: FormData) {
     });
     nomTutelle = tutelle?.nom_tutelle || "Tutelle";
 
-    revalidatePath(`/gestionnaire/${targetId}`);
+    revalidatePath(`/gestionnaireees/${targetId}`);
   } catch (error: any) {
     console.error(error);
     return { error: "Erreur lors de la mise à jour." };
   }
 
-  redirect(`/getionnaireees/${targetId}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
+  redirect(`/gestionnaireees/${targetId}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
 }
 
 /**
@@ -141,12 +147,12 @@ export async function DeleteEes(id: string, tutelle_id: string) {
       where: { id },
     });
 
-    revalidatePath(`/gestionnaire/${tutelle_id}`);
+    revalidatePath(`/gestionnaireees/${tutelle_id}`);
   } catch (error: any) {
     console.error("Erreur de suppression:", error);
     return { error: "Impossible de supprimer cet établissement." };
   }
 
   // 3. Redirection
-  redirect(`/getionnaireees/${tutelle_id}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
+  redirect(`/gestionnaireees/${tutelle_id}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
 }

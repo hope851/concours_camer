@@ -67,7 +67,7 @@ export default async function ConcoursDetailPage({ params }: { params: { id: str
                                 {concours.nom_concours}
                             </h1>
 
-                            <div className="flex items-center gap-4 p-6 bg-white/[0.03] border border-white/10 rounded-2xl backdrop-blur-sm">
+                            <div className="flex items-center gap-4 p-6 bg-white/3 border border-white/10 rounded-2xl backdrop-blur-sm">
                                 <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center text-indigo-400 shrink-0">
                                     <Building2 size={24} />
                                 </div>

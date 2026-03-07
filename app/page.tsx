@@ -1,10 +1,11 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowRight, BookOpen, MapPin, Users, Zap, CheckCircle, Calendar, Award, Lightbulb, Search, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, MapPin, Users, Zap, CheckCircle, Calendar, Award, Lightbulb, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ConcoursCalendar from "@/components/ConcoursCalendar";
 import AuthCallToAction from "@/components/AuthCallToAction";
-import LandingSearch from "@/components/LandingSearch";
+import CloudinaryImage from "@/components/CloudinaryImage";
+
 
 async function getStats() {
   try {
@@ -65,7 +66,7 @@ export default async function Home() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center animate-scale-in">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 backdrop-blur-sm">
             <Sparkles size={16} className="text-indigo-400" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">L'Excellence Académique à Portée de Main</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">L&apos;Excellence Académique à Portée de Main</span>
           </div>
 
           <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-none">
@@ -73,7 +74,7 @@ export default async function Home() {
           </h1>
 
           <p className="text-xl text-slate-400 mb-12 max-w-3xl mx-auto font-medium leading-relaxed">
-            La plateforme d'élite pour explorer l'enseignement supérieur au Cameroun.
+            La plateforme d&apos;élite pour explorer l&apos;enseignement supérieur au Cameroun.
             Découvrez, comparez et préparez votre avenir avec une précision inégalée.
           </p>
 
@@ -93,20 +94,159 @@ export default async function Home() {
           </div>
 
           {/* Quick stats in hero - REFINED */}
-          <div className="flex gap-8 max-w-2xl mx-auto justify-center">
-            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-indigo-500/30 transition-colors w-40">
-              <p className="text-3xl font-black text-indigo-400 mb-1">{stats.eesCount}+</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Établissements</p>
+          <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-8 max-w-2xl mx-auto justify-center">
+            <div className="w-28 sm:w-40 glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-white/5 group hover:border-indigo-500/30 transition-colors">
+              <p className="text-2xl sm:text-3xl font-black text-indigo-400 mb-1">{stats.eesCount}+</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest sm:break-normal break-words">Établissements</p>
             </div>
-            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-pink-500/30 transition-colors w-40">
-              <p className="text-3xl font-black text-pink-400 mb-1">{stats.concoursCount}+</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Concours</p>
+            <div className="w-28 sm:w-40 glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-white/5 group hover:border-pink-500/30 transition-colors">
+              <p className="text-2xl sm:text-3xl font-black text-pink-400 mb-1">{stats.concoursCount}+</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest sm:break-normal break-words">Concours</p>
             </div>
-            <div className="glass-card rounded-3xl p-6 border-white/5 group hover:border-cyan-500/30 transition-colors w-40">
-              <p className="text-3xl font-black text-cyan-400 mb-1">{stats.tutelleCount}+</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tutelles</p>
+            <div className="w-28 sm:w-40 glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-white/5 group hover:border-cyan-500/30 transition-colors">
+              <p className="text-2xl sm:text-3xl font-black text-cyan-400 mb-1">{stats.tutelleCount}+</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest sm:break-normal break-words">Tutelles</p>
             </div>
           </div>
+
+          {/* LATEST NEWS - VIBRANT HERO INTEGRATION (DESKTOP) */}
+          {stats.latestNews.length > 0 && (
+            <div className="mt-20 max-w-5xl mx-auto text-left animate-on-scroll hidden sm:block">
+              <div className="flex items-center justify-between mb-6 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                    <Zap size={18} className="text-orange-400 fill-orange-400/20" />
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">À la Une</h2>
+                </div>
+                <Link href="/news" className="text-sm font-bold text-indigo-400 hover:text-indigo-300 transition flex items-center gap-2 group">
+                  Toutes les actus <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 px-4">
+                {stats.latestNews.map((news) => (
+                  <Link
+                    key={news.id}
+                    href={`/news/${news.slug}`}
+                    className="group relative h-72 rounded-3xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 transition-all duration-500 hover:shadow-[0_10px_40px_-10px_rgba(99,102,241,0.3)] hover:-translate-y-2 block"
+                  >
+                    {/* Background Image if exists */}
+                    {news.image && (
+                      <div className="absolute inset-0 z-0">
+                        <CloudinaryImage
+                          src={news.image}
+                          alt={news.title}
+                          fill
+                          className="object-cover opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700"
+                        />
+                        <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-linear-to-br from-indigo-500/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-1" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-[50px] -mr-16 -mt-16 group-hover:bg-indigo-400/30 transition-colors duration-500 z-1" />
+
+                    <div className="relative h-full p-6 flex flex-col justify-between z-10">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-sm">
+                            {news.category}
+                          </span>
+                          {news.isUrgent && (
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[10px] font-black text-rose-400 uppercase tracking-widest animate-pulse shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping absolute opacity-75"></span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 relative"></span> Urgent
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-bold text-white leading-tight line-clamp-3 group-hover:text-indigo-300 transition-colors">
+                          {news.title}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-4 border-t border-white/5 pt-4">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          {new Intl.DateTimeFormat("fr-FR", { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(news.createdAt))}
+                        </span>
+                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors border border-white/5 group-hover:border-indigo-500/30">
+                          <ArrowRight size={14} className="text-slate-400 group-hover:text-indigo-400 transition-colors group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* LATEST NEWS - MOBILE SCROLLABLE VIEW */}
+          {stats.latestNews.length > 0 && (
+            <div className="mt-16 sm:hidden text-left pl-4 animate-fade-in">
+              <div className="flex items-center justify-between mb-4 pr-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center border border-orange-500/30 shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+                    <Zap size={14} className="text-orange-400 fill-orange-400/20" />
+                  </div>
+                  <h2 className="text-xl font-black text-white tracking-tight">À la Une</h2>
+                </div>
+                <Link href="/news" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition">
+                  Tout voir
+                </Link>
+              </div>
+
+              <div className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory -mx-0 scrollbar-hide">
+                {stats.latestNews.map((news) => (
+                  <Link
+                    key={news.id}
+                    href={`/news/${news.slug}`}
+                    className="snap-center shrink-0 w-[280px] h-60 rounded-3xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/10 block relative"
+                  >
+                    {/* Background Image for Mobile */}
+                    {news.image && (
+                      <div className="absolute inset-0 z-0">
+                        <CloudinaryImage
+                          src={news.image}
+                          alt={news.title}
+                          fill
+                          className="object-cover opacity-50 transition-all duration-700"
+                        />
+                        <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                      </div>
+                    )}
+
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-[40px] -mr-12 -mt-12 z-1" />
+
+                    <div className="relative h-full p-5 flex flex-col justify-between z-10">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                            {news.category}
+                          </span>
+                          {news.isUrgent && (
+                            <span className="flex items-center gap-1 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/30 text-[9px] font-black text-rose-400 uppercase tracking-widest animate-pulse">
+                              <span className="w-1 h-1 rounded-full bg-rose-500 relative"></span> Urgent
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-base font-bold text-white leading-snug line-clamp-3">
+                          {news.title}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          {new Intl.DateTimeFormat("fr-FR", { day: '2-digit', month: 'short' }).format(new Date(news.createdAt))}
+                        </span>
+                        <ArrowRight size={14} className="text-indigo-400" />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+                <div className="snap-center shrink-0 w-4" /> {/* End spacer padding */}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -114,7 +254,7 @@ export default async function Home() {
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
         <div className="mb-12">
           <h2 className="text-4xl font-black text-white mb-2">Explorez par les chiffres</h2>
-          <p className="text-slate-400">Découvrez l'ampleur de notre plateforme d'éducation</p>
+          <p className="text-slate-400">Découvrez l&apos;ampleur de notre plateforme d&apos;éducation</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -154,7 +294,7 @@ export default async function Home() {
           <p className="text-slate-400">Planifiez votre parcours académique avec les dates des concours</p>
         </div>
 
-        <ConcoursCalendar concours={stats.allConcours as any} />
+        <ConcoursCalendar concours={stats.allConcours as unknown as Record<string, unknown>[]} />
       </section>
 
       {/* COMMENT ÇA MARCHE */}
@@ -232,7 +372,7 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {stats.topEES.map((ees: any) => (
+              {stats.topEES.map((ees) => (
                 <Link
                   key={ees.id}
                   href={`/explore/${ees.id}`}
@@ -277,7 +417,7 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {stats.recentEES.map((ees: any) => (
+              {stats.recentEES.map((ees) => (
                 <Link
                   key={ees.id}
                   href={`/explore/${ees.id}`}
@@ -317,58 +457,7 @@ export default async function Home() {
         )
       }
 
-      {/* ACTUALITÉS RÉCENTES */}
-      {
-        stats.latestNews.length > 0 && (
-          <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
-            <div className="flex items-end justify-between mb-12">
-              <div>
-                <h2 className="text-4xl font-black text-white mb-2">Dernières Actualités</h2>
-                <p className="text-slate-400">Restez informé des derniers communiqués et opportunités</p>
-              </div>
-              <Link
-                href="/news"
-                className="hidden sm:flex items-center gap-2 text-indigo-400 font-bold hover:text-indigo-300 transition"
-              >
-                Voir tout <ArrowRight size={16} />
-              </Link>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {stats.latestNews.map((news: any) => (
-                <Link
-                  key={news.id}
-                  href={`/news/${news.slug}`}
-                  className="group flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                        {news.category}
-                      </span>
-                      {news.isUrgent && (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-rose-400 uppercase tracking-tighter animate-pulse">
-                          <Zap size={10} /> Urgent
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-3 group-hover:text-indigo-300 transition line-clamp-2 leading-tight">
-                      {news.title}
-                    </h3>
-                    <p className="text-slate-400 text-xs mb-6 line-clamp-2 leading-relaxed">
-                      {news.excerpt}
-                    </p>
-                    <div className="mt-auto flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                      <span>{new Intl.DateTimeFormat("fr-FR").format(new Date(news.createdAt))}</span>
-                      <span className="text-indigo-400 group-hover:translate-x-1 transition-transform">Lire suite →</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )
-      }
 
       {/* AVANTAGES */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-32">
@@ -408,7 +497,7 @@ export default async function Home() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold mb-1">Réussir vos Concours</h3>
-                  <p className="text-slate-400 text-sm">Planifiez et organisez votre parcours d'admission</p>
+                  <p className="text-slate-400 text-sm">Planifiez et organisez votre parcours d&apos;admission</p>
                 </div>
               </div>
             </div>

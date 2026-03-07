@@ -4,9 +4,27 @@ import { MapPin, School, Globe, GraduationCap, ArrowRight, Building2, X, Externa
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 
+interface EesData {
+  id: string;
+  nom_ees: string;
+  ees_type: string;
+  ville: string;
+  domaine: string;
+  site_ees?: string | null;
+  tutelle_id: string;
+  tutelle: {
+    nom_tutelle: string;
+  };
+  filieres?: { nom_filiere: string }[];
+  _count?: {
+    filieres: number;
+    concours: number;
+  };
+}
+
 interface EesProps {
-  data: any; // Garde ton interface détaillée ici
-  onEdit?: (ees: any) => void;
+  data: EesData;
+  onEdit?: (ees: EesData) => void;
 }
 
 export default function EesCard({ data, onEdit }: EesProps) {
@@ -38,7 +56,7 @@ export default function EesCard({ data, onEdit }: EesProps) {
 
   return (
     <div className={`group bg-white rounded-[2.8rem] shadow-sm border border-slate-100 hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col h-full relative overflow-visible ${isDeleting ? "opacity-50 grayscale" : ""}`}>
-      
+
       {/* HEADER : Type, Ville + ACTIONS VISIBLES */}
       <div className="p-8 pb-0">
         <div className="flex justify-between items-start mb-5">
@@ -61,7 +79,7 @@ export default function EesCard({ data, onEdit }: EesProps) {
             >
               <Pencil className="h-4 w-4" />
             </Link>
-            <button 
+            <button
               onClick={handleDelete}
               className="p-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-colors shadow-sm border border-rose-100"
             >
@@ -69,7 +87,7 @@ export default function EesCard({ data, onEdit }: EesProps) {
             </button>
           </div>
         </div>
-        
+
         <h2 className="text-2xl font-black text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors duration-300">
           {data.nom_ees}
         </h2>
@@ -116,46 +134,45 @@ export default function EesCard({ data, onEdit }: EesProps) {
       {/* FOOTER : STATS & ACTIONS */}
       <div className="px-8 pb-8 mt-auto">
         <div className="flex items-center justify-between mb-8 p-4 bg-slate-50/80 rounded-[2rem] border border-slate-100 relative">
-            <div ref={containerRef} className="relative">
-                <button 
-                  onClick={() => setShowFiliere(!showFiliere)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-bold text-xs ${
-                    showFiliere ? "bg-indigo-600 text-white shadow-lg" : "bg-white text-slate-600 shadow-sm border border-slate-100"
-                  }`}
-                >
-                  <GraduationCap className={`h-4 w-4 ${showFiliere ? "text-white" : "text-indigo-500"}`} />
-                  {data._count?.filieres || 0} Filières
-                </button>
-            
-                {showFiliere && (
-                  <div className="absolute bottom-full left-0 mb-4 bg-white border border-slate-200 shadow-2xl w-72 rounded-[2rem] z-50 overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-indigo-50/30 font-black text-[10px] text-indigo-600 uppercase tracking-widest">
-                        Offre Académique
-                        <X className="h-4 w-4 cursor-pointer" onClick={() => setShowFiliere(false)} />
-                    </div>
-                    <div className="p-3 max-h-64 overflow-y-auto">
-                      {data.filieres?.map((filiere: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-2xl transition-colors">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                          <span className="text-xs font-bold text-slate-700">{filiere.nom_filiere}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
+          <div ref={containerRef} className="relative">
+            <button
+              onClick={() => setShowFiliere(!showFiliere)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-bold text-xs ${showFiliere ? "bg-indigo-600 text-white shadow-lg" : "bg-white text-slate-600 shadow-sm border border-slate-100"
+                }`}
+            >
+              <GraduationCap className={`h-4 w-4 ${showFiliere ? "text-white" : "text-indigo-500"}`} />
+              {data._count?.filieres || 0} Filières
+            </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100/50">
-                <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-xs font-black text-emerald-700 uppercase tracking-tighter">
-                  {data._count?.concours || 0} Concours
-                </span>
-            </div>
+            {showFiliere && (
+              <div className="absolute bottom-full left-0 mb-4 bg-white border border-slate-200 shadow-2xl w-72 rounded-[2rem] z-50 overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+                <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-indigo-50/30 font-black text-[10px] text-indigo-600 uppercase tracking-widest">
+                  Offre Académique
+                  <X className="h-4 w-4 cursor-pointer" onClick={() => setShowFiliere(false)} />
+                </div>
+                <div className="p-3 max-h-64 overflow-y-auto">
+                  {data.filieres?.map((filiere: { nom_filiere: string }, idx: number) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-2xl transition-colors">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                      <span className="text-xs font-bold text-slate-700">{filiere.nom_filiere}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100/50">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-xs font-black text-emerald-700 uppercase tracking-tighter">
+              {data._count?.concours || 0} Concours
+            </span>
+          </div>
         </div>
 
-        <Link 
+        <Link
           href={`/gestionnaireconcours/${data.id}?nom_ees=${encodeURIComponent(data.nom_ees)}&tutelle_id=${data.tutelle_id}`}
-          className="group/btn block w-full" 
+          className="group/btn block w-full"
         >
           <div className="w-full py-5 bg-indigo-600 text-white font-black text-sm rounded-[1.8rem] transition-all duration-300 flex justify-center items-center gap-3 group-hover/btn:bg-indigo-700 shadow-xl shadow-indigo-100 active:scale-95">
             Gérer les Concours

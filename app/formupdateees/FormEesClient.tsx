@@ -82,7 +82,8 @@ function FormFields({ data }: EesProps) {
                 // On ne reset le formulaire que si c'est une création (pas d'ID)
                 if (!finalEesId) formRef.current?.reset();
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message === "NEXT_REDIRECT") throw error;
             setStatus({ type: 'error', message: "Une erreur inattendue est survenue." });
         }
     }

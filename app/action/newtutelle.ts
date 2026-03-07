@@ -19,6 +19,8 @@ export async function AddTutelle(formData: FormData) {
       return { error: "Le nom et la région sont obligatoires." };
     }
 
+    
+
     await prisma.tutelleInstitutionelle.create({
       data: {
         nom_tutelle,
@@ -92,16 +94,30 @@ export async function DeleteTutelle(id: string) {
 
     // Revalider le chemin pour mettre à jour la liste côté client
     revalidatePath("/gestionnairetutelle");
-    
+
     return { success: true };
   } catch (error: any) {
     console.error("Erreur de suppression:", error);
-    
+
     // Gestion d'erreur si des EES sont encore liées (si onDelete: Cascade n'est pas mis)
     if (error.code === 'P2003') {
-        return { error: "Suppression impossible : des établissements sont encore liés à cette tutelle." };
+      return { error: "Suppression impossible : des établissements sont encore liés à cette tutelle." };
     }
-    
+
     return { error: "Une erreur est survenue lors de la suppression." };
+  }
+}
+
+/**
+ * RÉCUPÉRER TOUTES LES TUTELLES
+ */
+export async function GetTutelles() {
+  try {
+    return await prisma.tutelleInstitutionelle.findMany({
+      orderBy: { nom_tutelle: 'asc' },
+    });
+  } catch (error) {
+    console.error("Erreur GetTutelles:", error);
+    return [];
   }
 }

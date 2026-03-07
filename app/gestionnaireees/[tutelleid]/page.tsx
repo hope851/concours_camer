@@ -2,6 +2,7 @@ import EesCard from "@/components/ui/eesCard";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, LayoutGrid, ArrowLeft, Building2 } from "lucide-react";
+import { GetCurrentUser } from "@/app/action/user";
 
 export default async function GestionEesPage({
   params,
@@ -12,6 +13,8 @@ export default async function GestionEesPage({
 }) {
   const { nom_tutelle } = await searchParams;
   const { tutelleid: tid } = await params;
+  const user = await GetCurrentUser();
+  const isAdmin = user?.role === 'ADMIN';
 
   const etablissements = await prisma.eES.findMany({
     where: { tutelle_id: tid },
@@ -26,11 +29,11 @@ export default async function GestionEesPage({
   });
 
   const AddButton = ({ outline = false }: { outline?: boolean }) => (
-    <Link href={`/formees?tutelleId=${tid}&nom=${nom_tutelle}`} className="inline-block">
+    <Link href={`/formees?tutelle_id=${tid}&nom=${nom_tutelle}`} className="inline-block">
       <button
         className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black transition-all duration-500 shadow-sm uppercase tracking-widest text-xs ${outline
-            ? "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10"
-            : "bg-indigo-600 text-white hover:bg-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-1 active:scale-95"
+          ? "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10"
+          : "bg-indigo-600 text-white hover:bg-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 hover:-translate-y-1 active:scale-95"
           }`}
       >
         <Plus className="h-5 w-5" />
@@ -43,16 +46,16 @@ export default async function GestionEesPage({
     return (
       <div className="flex flex-col justify-center items-center min-h-screen p-6 bg-slate-950">
         <div className="p-16 rounded-[3rem] shadow-2xl max-w-md w-full text-center relative overflow-hidden bg-white/5 border border-white/10 backdrop-blur-xl animate-in fade-in zoom-in duration-1000">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500" />
           <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-10 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
             <Building2 className="h-10 w-10" />
           </div>
           <h2 className="text-3xl font-black mb-4 tracking-tighter text-white">Aucun EES</h2>
           <p className="mb-12 leading-relaxed font-medium text-slate-400">
-            Il n'y a pas encore d'établissement enregistré sous la tutelle : <br />
+            Il n&apos;y a pas encore d&apos;établissement enregistré sous la tutelle : <br />
             <span className="font-bold text-indigo-400 underline underline-offset-8 mt-2 inline-block transition-all hover:text-indigo-300 cursor-default">{nom_tutelle}</span>
           </p>
-          <AddButton />
+          {isAdmin && <AddButton />}
         </div>
       </div>
     );
@@ -82,7 +85,7 @@ export default async function GestionEesPage({
             </div>
 
             <div className="animate-in fade-in slide-in-from-right-8 duration-700">
-              <AddButton />
+              {isAdmin && <AddButton />}
             </div>
           </div>
         </div>
@@ -102,9 +105,11 @@ export default async function GestionEesPage({
         {/* Footer final */}
         <div className="mt-32 text-center border-t border-white/5 pt-20">
           <p className="text-slate-600 font-black mb-10 uppercase text-[10px] tracking-[0.5em]">Fin de la liste des établissements</p>
-          <div className="scale-90 opacity-50 hover:opacity-100 hover:scale-100 transition-all duration-500">
-            <AddButton outline />
-          </div>
+          {isAdmin && (
+            <div className="scale-90 opacity-50 hover:opacity-100 hover:scale-100 transition-all duration-500">
+              <AddButton outline />
+            </div>
+          )}
         </div>
       </div>
     </div>

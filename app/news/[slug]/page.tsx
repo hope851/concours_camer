@@ -1,11 +1,13 @@
 import { getNewsBySlugAction } from "@/app/action/news";
 import Navbar from "@/components/Navbar";
-import { ArrowLeft, Calendar, User, Tag, Share2, ExternalLink, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, ExternalLink, AlertCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+// Importe ton composant personnalisé qui gère déjà le loader côté client
+import CloudinaryImage from "@/components/CloudinaryImage"; 
 
 export default async function NewsDetailPage({ params }: { params: { slug: string } }) {
+    // Correction de l'accès aux params (Next.js 15+ nécessite await)
     const { slug } = await params;
     const news = await getNewsBySlugAction(slug);
 
@@ -29,14 +31,14 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
                 {/* Back Button */}
                 <Link
                     href="/news"
-                    className="inline-flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors mb-12 group animate-in fade-in slide-in-from-left-4 duration-700"
+                    className="inline-flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors mb-12 group"
                 >
                     <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
                     <span className="text-xs font-black uppercase tracking-widest">Retour aux actualités</span>
                 </Link>
 
                 {/* Article Header */}
-                <header className="mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 fill-mode-both">
+                <header className="mb-16">
                     <div className="flex flex-wrap items-center gap-4 mb-8">
                         <span className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">
                             {news.category}
@@ -57,8 +59,9 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
                     </h1>
 
                     {news.image && (
-                        <div className="relative w-full h-[400px] mb-12 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-1000">
-                            <Image
+                        <div className="relative w-full h-100 mb-12 rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl">
+                            {/* REMPLACÉ : On utilise CloudinaryImage sans passer de prop loader ici */}
+                            <CloudinaryImage
                                 src={news.image}
                                 alt={news.title}
                                 fill
@@ -69,20 +72,20 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
                         </div>
                     )}
 
-                    <div className="p-8 bg-white/[0.03] backdrop-blur-xl border-l-[6px] border-indigo-500 rounded-2xl rounded-l-none italic text-slate-300 text-xl leading-relaxed shadow-2xl animate-in fade-in slide-in-from-right-8 duration-1000 delay-300 fill-mode-both">
+                    <div className="p-8 bg-white/3 backdrop-blur-xl border-l-[6px] border-indigo-500 rounded-2xl rounded-l-none italic text-slate-300 text-xl leading-relaxed">
                         {news.excerpt}
                     </div>
                 </header>
 
                 {/* Article Content */}
-                <article className="prose prose-invert prose-indigo max-w-none mb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 fill-mode-both">
+                <article className="prose prose-invert prose-indigo max-w-none mb-24">
                     <div className="text-slate-300 text-lg md:text-xl leading-[1.8] space-y-8 whitespace-pre-wrap font-medium">
                         {news.content}
                     </div>
                 </article>
 
                 {/* Footer Section */}
-                <section className="pt-16 border-t border-white/5 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-700 fill-mode-both">
+                <footer className="pt-16 border-t border-white/5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 p-10 bg-linear-to-br from-indigo-600/10 via-white/5 to-transparent rounded-[40px] border border-white/10 backdrop-blur-md">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-4">
@@ -103,14 +106,14 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
                                 href={news.sourceUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="group inline-flex items-center gap-3 px-8 py-4 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-2xl text-white font-black text-sm uppercase tracking-widest transition-all hover:shadow-xl hover:shadow-indigo-500/20 active:scale-95"
+                                className="group inline-flex items-center gap-3 px-8 py-4 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-2xl text-white font-black text-sm uppercase tracking-widest transition-all"
                             >
                                 <ExternalLink size={20} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                                 Visiter le site
                             </a>
                         )}
                     </div>
-                </section>
+                </footer>
             </div>
         </div>
     );

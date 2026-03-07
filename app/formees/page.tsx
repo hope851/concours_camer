@@ -35,13 +35,13 @@ function FormFields() {
     const searchParams = useSearchParams();
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-    const tutelleId = searchParams.get("tutelleId");
+    const tutelle_id = searchParams.get("tutelle_id");
     const nomTutelle = searchParams.get("nom");
 
     async function handleClientAction(formData: FormData) {
         setStatus(null);
-        if (tutelleId) {
-            formData.append("tutelleId", tutelleId);
+        if (tutelle_id) {
+            formData.append("tutelle_id", tutelle_id);
         } else {
             setStatus({ type: 'error', message: "ID de tutelle manquant dans l'URL." });
             return;
@@ -55,7 +55,10 @@ function FormFields() {
                 setStatus({ type: 'success', message: "L'établissement et ses filières ont été ajoutés avec succès !" });
                 formRef.current?.reset();
             }
-        } catch (error) {
+        } catch (error: any) {
+            // Next.js redirection process throws an error, we shouldn't catch it if it's a redirect
+            if (error.message === "NEXT_REDIRECT") throw error;
+            console.error(error);
             setStatus({ type: 'error', message: "Une erreur technique est survenue." });
         }
     }

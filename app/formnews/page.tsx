@@ -2,6 +2,7 @@
 
 import { createNewsAction } from '@/app/action/news';
 import { Newspaper, Send, AlertTriangle, Link as LinkIcon, Image as ImageIcon, Sparkles } from 'lucide-react';
+import SubmitButton from '@/components/bouttonsubmite';
 
 export default function CreateNewsForm() {
     return (
@@ -162,13 +163,7 @@ export default function CreateNewsForm() {
 
                         {/* Submit Button */}
                         <div className="pt-6">
-                            <button
-                                type="submit"
-                                className="w-full bg-linear-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group"
-                            >
-                                <Send size={24} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                <span>Publier l'Actualité</span>
-                            </button>
+                            <SubmitButton />
                         </div>
                     </form>
                 </div>

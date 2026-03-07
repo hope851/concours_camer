@@ -123,7 +123,7 @@ export default function Navbar() {
                   href="/register"
                   className="px-4 py-2 bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition font-semibold text-sm"
                 >
-                  S'inscrire
+                  S&apos;inscrire
                 </Link>
               </div>
             )}
@@ -193,7 +193,7 @@ export default function Navbar() {
                     className="block px-4 py-2 bg-linear-to-r from-purple-600 to-blue-600 text-white rounded-lg transition font-semibold text-center"
                     onClick={() => setIsOpen(false)}
                   >
-                    S'inscrire
+                    S&apos;inscrire
                   </Link>
                 </div>
               )}

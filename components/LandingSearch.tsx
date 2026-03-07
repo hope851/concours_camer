@@ -49,7 +49,7 @@ export default function LandingSearch() {
 
             {results.length > 0 && (
                 <div className="absolute top-full mt-4 w-full bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-3xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="max-h-[400px] overflow-y-auto p-2">
+                    <div className="max-h-100 overflow-y-auto p-2">
                         {results.map((item) => (
                             <Link
                                 key={`${item.type}-${item.id}`}

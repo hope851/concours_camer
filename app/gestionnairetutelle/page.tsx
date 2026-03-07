@@ -1,18 +1,22 @@
 import TutelleCard from "@/components/ui/tutelleCard";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { ArrowLeft, Building2 } from "lucide-react";
+import { GetCurrentUser } from "@/app/action/user";
 
 export default async function GestionPage() {
   // 1. Récupérer TOUS les instituts (on enlève le filtre where pour tout avoir)
   const institutions = await prisma.tutelleInstitutionelle.findMany({
-    orderBy: { nom_tutelle: 'asc' },// Optionnel : trier par ordre alphabétique
+    orderBy: { nom_tutelle: 'asc' },
     include: {
       _count: {
-        select: { ees: true } // "ees" doit correspondre au nom de la relation dans votre schéma
+        select: { ees: true }
       }
     }
   });
+
+  const user = await GetCurrentUser();
+  const isAdmin = user?.role === 'ADMIN';
 
   const AddButton = ({ outline = false }: { outline?: boolean }) => (
     <Link href="/formtutelle" className="inline-block group">
@@ -34,7 +38,7 @@ export default async function GestionPage() {
         <div className="text-center mb-10 p-16 bg-white/5 border border-white/10 rounded-[3rem] backdrop-blur-xl animate-in fade-in zoom-in duration-1000">
           <h2 className="text-2xl font-black text-white mb-4">Base de données vide</h2>
           <p className="mb-10 font-medium">Aucun établissement trouvé dans la base de données.</p>
-          <AddButton />
+          {isAdmin && <AddButton />}
         </div>
       </div>
     );
@@ -43,6 +47,10 @@ export default async function GestionPage() {
   return (
     <div className="min-h-screen bg-slate-950 p-6 md:p-16 text-slate-200">
       <div className="max-w-7xl mx-auto">
+        <Link href="/profile/admin" className="group inline-flex items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-indigo-400 transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5 mr-2 transition-transform group-hover:-translate-x-1" />
+          Retour vers profile
+        </Link>
         <header className="mb-20 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
             <Building2 className="w-3 h-3" /> Administration
@@ -67,9 +75,11 @@ export default async function GestionPage() {
       </div>
 
       <div className="mt-24 flex justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500 fill-mode-both">
-        <div className="scale-90 opacity-50 hover:opacity-100 hover:scale-100 transition-all duration-500">
-          <AddButton outline />
-        </div>
+        {isAdmin && (
+          <div className="scale-90 opacity-50 hover:opacity-100 hover:scale-100 transition-all duration-500">
+            <AddButton outline />
+          </div>
+        )}
       </div>
     </div>
   );

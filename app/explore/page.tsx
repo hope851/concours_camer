@@ -148,7 +148,7 @@ export default function ExplorePage() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-indigo-500 transition"
+                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition [&>option]:bg-slate-900 [&>option]:text-white"
                 >
                   <option value="">Tous les types</option>
                   {types.map(type => (
@@ -163,7 +163,7 @@ export default function ExplorePage() {
                 <select
                   value={filterVille}
                   onChange={(e) => setFilterVille(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-indigo-500 transition"
+                   className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition [&>option]:bg-slate-900 [&>option]:text-white"
                 >
                   <option value="">Toutes les villes</option>
                   {villes.map(ville => (
@@ -178,7 +178,7 @@ export default function ExplorePage() {
                 <select
                   value={filterDomaine}
                   onChange={(e) => setFilterDomaine(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-indigo-500 transition"
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition [&>option]:bg-slate-900 [&>option]:text-white"
                 >
                   <option value="">Tous les domaines</option>
                   {domaines.map(domaine => (
