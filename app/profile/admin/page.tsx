@@ -184,7 +184,7 @@ export default function AdminConsole() {
                                                         await AssignEesToUser(u.id, val);
                                                         init();
                                                     }}
-                                                    className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-[10px] font-bold text-slate-400 focus:ring-2 ring-indigo-500/50 outline-none transition-all w-full max-w-[200px]"
+                                                    className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-[10px] font-bold text-slate-400 focus:ring-2 ring-indigo-500/50 outline-none transition-all w-full max-w-50"
                                                 >
                                                     <option value="">Non assigné</option>
                                                     {eesList.map(ees => (
