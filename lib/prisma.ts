@@ -1,28 +1,26 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
-import pg from 'pg'
-import 'dotenv/config' // <--- Ajoutez ceci impérativement pour charger le .env
+import dotenv from 'dotenv'
+
+dotenv.config({ path: ['.env.local', '.env'] })
 
 const connectionString = process.env.DATABASE_URL
 
-// Vérification de sécurité avant d'instancier le Pool
 if (!connectionString || connectionString === 'undefined') {
-  console.error("❌ Erreur : DATABASE_URL n'est pas définie dans l'environnement.")
+  throw new Error("❌ Erreur : DATABASE_URL n'est pas définie dans l'environnement.")
 }
 
-const pool = new pg.Pool({ connectionString })
-const adapter = new PrismaPg(pool)
-
-const prismaClientSingleton = () => {
-  return new PrismaClient({ adapter })
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient
 }
 
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>
-}
+const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  adapter: new PrismaPg({ connectionString }),
+  log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+})
 
-const prisma = globalThis.prisma ?? prismaClientSingleton()
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
 
 export default prisma
-
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma

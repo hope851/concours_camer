@@ -11,6 +11,7 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
 model TutelleInstitutionelle {
   id String @id @default(uuid())
   nom_tutelle String  @map("nom_tutelle")

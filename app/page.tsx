@@ -26,6 +26,9 @@ async function getStats() {
       prisma.news.findMany({
         take: 3,
         orderBy: { createdAt: 'desc' }
+      }).catch((error) => {
+        console.warn('News unavailable:', error);
+        return [];
       })
     ]);
 
