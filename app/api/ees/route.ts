@@ -3,17 +3,18 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const ees = await prisma.eES.findMany({
+    const ees = await prisma.ees.findMany({
       include: {
-        tutelle: true,
+        tutelleInstitutionelle: true,
+        ville: true,
         _count: {
           select: {
-            filieres: true,
-            concours: true,
+            programme: true,
+            sessionAdmission: true,
           },
         },
       },
-      orderBy: { nom_ees: "asc" },
+      orderBy: { nomEes: "asc" },
     });
 
     return NextResponse.json(ees);
@@ -25,3 +26,4 @@ export async function GET() {
     );
   }
 }
+

@@ -6,15 +6,24 @@ import { DeleteTutelle } from "@/app/action/newtutelle";
 interface TutelleProps {
   data: {
     id: string;
-    nom_tutelle: string;
+    nomTutelle?: string;
+    nom_tutelle?: string;
+    nomTutelleTech?: string | null;
     nom_tutelle_tech?: string | null;
-    region: string;
+    region?: string | null;
+    pays?: { nomPays?: string; region?: string };
+    tutelleBio?: string | null;
     tutelle_bio?: string | null;
     _count?: { ees: number };
   };
 }
 
 export default function TutelleCard({ data }: TutelleProps) {
+  const nomTutelle = data.nomTutelle ?? data.nom_tutelle ?? "";
+  const nomTutelleTech = data.nomTutelleTech ?? data.nom_tutelle_tech;
+  const tutelleBio = data.tutelleBio ?? data.tutelle_bio;
+  const regionName = data.pays?.nomPays ?? data.region ?? data.pays?.region ?? "Cameroun";
+
   const handleDelete = async () => {
     if (window.confirm("Supprimer cette institution ?")) {
       await DeleteTutelle(data.id);
@@ -40,12 +49,12 @@ export default function TutelleCard({ data }: TutelleProps) {
         </div>
 
         <h2 className="text-2xl font-extrabold text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors">
-          {data.nom_tutelle}
+          {nomTutelle}
         </h2>
 
         <div className="flex items-center gap-1.5 mt-3 text-slate-400 font-medium text-[11px] uppercase tracking-wider">
           <MapPin className="h-3 w-3 text-rose-400" />
-          {data.region || "Cameroun"}
+          {regionName}
         </div>
       </div>
 
@@ -62,21 +71,21 @@ export default function TutelleCard({ data }: TutelleProps) {
           </div>
           <div className="min-w-0">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Autorité de tutelle</p>
-            <p className="text-slate-700 font-bold text-sm truncate">{data.nom_tutelle_tech || "Ministère"}</p>
+            <p className="text-slate-700 font-bold text-sm truncate">{nomTutelleTech || "Ministère"}</p>
           </div>
         </div>
 
         {/* Bio (Style Typographique Pur) */}
-        {data.tutelle_bio && (
+        {tutelleBio && (
           <p className="text-sm text-slate-400 leading-relaxed line-clamp-2 font-medium italic">
-            {data.tutelle_bio}
+            {tutelleBio}
           </p>
         )}
 
         {/* 4. Actions (Style Floating Footer) */}
         <div className="mt-auto space-y-3 pt-4">
           <Link
-            href={`/gestionnaireees/${data.id}?nom_tutelle=${encodeURIComponent(data.nom_tutelle)}`}
+            href={`/gestionnaireees/${data.id}?nom_tutelle=${encodeURIComponent(nomTutelle)}`}
             className="flex items-center justify-between w-full p-2 pl-6 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl transition-all duration-300 group/link"
           >
             <span className="text-[11px] font-black uppercase tracking-[0.15em]">Gérer les etablissements</span>

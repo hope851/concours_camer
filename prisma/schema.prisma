@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,87 +6,160 @@ datasource db {
   provider = "postgresql"
 }
 
-model TutelleInstitutionelle {
-  id String @id @default(uuid())
-  nom_tutelle String  @map("nom_tutelle")
-  nom_tutelle_tech String? @map("nom_tutelle_tech")
-  region String @map("region")
-  tutelle_bio String? @map("tutelle_bio")
-  ees EES[]
-  @@map("tutelle_institutionelle")
+model ees {
+  id                     String                 @id @default(uuid())
+  domaine                String
+  eesBio                 String?
+  eesType                String
+  nomEes                 String
+  posGeoLatitude         Float?
+  posGeoLongitude        Float?
+  siteEes                String?
+  logoEes                String?
+  tutelleId              String
+  villeId                String
+  news                   News[]
+  followusers            FollowEes[]
+  tutelleInstitutionelle tutelleInstitutionelle @relation(fields: [tutelleId], references: [id])
+  ville                  ville                  @relation(fields: [villeId], references: [id])
+  programme              Programme[]
+  sessionAdmission       sessionAdmission[]
+  users                  users[]                @relation("EESToUsers")
 }
 
-model EES{
-  id String @id @default(uuid())
-  nom_ees String @map("nom_ees") 
-  domaine String @map("domaine")
-  ees_bio String? @map("ees_bio")
-  ville String @map("ville")
-  site_ees String? @map("site_ees")
-  ees_type String @map("ees_type")
-  tutelle_id String 
-  manager Users[] 
-  tutelle TutelleInstitutionelle @relation(fields: [tutelle_id], references: [id])
-  filieres Filiere[]
-  concours Concours[]
-  @@map("ees")
+model FollowEes {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade) 
+  eesId     String
+  ees       ees      @relation(fields: [eesId], references: [id], onDelete: Cascade)
+  @@unique([userId, eesId])
 }
 
 
-model Filiere{
-  id String @id @default(uuid())
-  nom_filiere String @map("nom_filiere")
-  mention String? @map("mention")
-  ees_id String
-  ees EES @relation(fields: [ees_id], references: [id], onDelete: Cascade)
-  @@map("filiere")
-
+model FollowTutelle {
+  id        String                   @id @default(uuid())
+  createdAt DateTime                 @default(now())
+  userId    String
+  user      users                    @relation(fields: [userId], references: [id], onDelete: Cascade) 
+  tutelleId String
+  tutelle   tutelleInstitutionelle   @relation(fields: [tutelleId], references: [id], onDelete: Cascade)
+  @@unique([userId, tutelleId])
 }
-model Concours{
-  id String @id @default(uuid())
-  nom_concours String @map("nom_concours")
-  etat Boolean @map("etat") @default(false)
-  concours_bio String? @map("concours_bio")
-  date_ouverture DateTime @map("date_ouverture")
-  limite_depot DateTime @map("limite_depot")
-  date_exam DateTime @map("date_exam")
-  diplome_requis String @map("diplome_requis")
-  adress_exam String? @map("adress_exam")
-  ees_id String
-  ees EES @relation(fields: [ees_id], references: [id],onDelete: Cascade)
-  @@map("concours")
 
-}
-enum Role{
-  ADMIN
-  GESTIONAIRE
-  USER
-}
-model Users{
-  id String @id @default(uuid())
-  email String @unique @map("email")
-  password String @map("password")
-  nom String @map("nom")
-  role Role @default(USER) @map("role")
-  isActive Boolean @default(true) @map("is_active")
-  date_inscription DateTime @default(now()) @map("date_inscription")
-  eesId String? @map("ees_id")
-  managedees EES? @relation(fields: [eesId], references: [id])  
-
-  @@map("users")
+model FollowProgramme {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  userId      String
+  user        users    @relation(fields: [userId], references: [id], onDelete: Cascade) 
+  programmeId String
+  programme  Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  @@unique([userId, programmeId])
 }
 
 model News {
-  id        String   @id @default(cuid()) @map("id")
-  title     String @map("title")
-  image     String? @map("image")  // Optionnel : contient l'URL de l'image (ex: Cloudinary ou Uploadthing)
-  excerpt   String @map("excerpt")
-  content   String   @db.Text @map("content")
-  category  String @map("category")
-  isUrgent  Boolean  @default(false) @map("is_urgent")
-  slug      String   @unique @map("slug")
-  createdAt DateTime @default(now()) @map("created_at")
-  sourceUrl   String? @map("source_url")  // L'URL vers le site officiel ou le PDF original
-  sourceName  String? @map("source_name")  // Le nom du site (ex: "Portail MINESUP", "Journal Officiel")
-  @@map("news")
+  id         String                  @id @default(uuid())
+  title      String
+  image      String?
+  excerpt    String       
+  content    String                 @db.Text
+  category   String
+  slug       String                   @unique
+  createdAt  DateTime                 @default(now())
+  isUrgent   Boolean                  @default(false)
+  sourceName String?
+  sourceUrl  String?
+  contenthash String                  @unique
+  eesId      String?
+  ees        ees?                     @relation(fields: [eesId], references: [id])
+  tutelleId  String?
+  tutelle  tutelleInstitutionelle?    @relation(fields: [tutelleId], references: [id])
+  programmeId  String?
+  programme  Programme?               @relation(fields: [programmeId], references: [id])
+}
+
+model Pays {
+  id                     String                   @id @default(uuid())
+  nomPays                String                   @unique
+  region                 String
+  imgGrapeau             String?
+  tutelleInstitutionelle tutelleInstitutionelle[]
+  ville                  ville[]
+}
+
+model Programme {
+  id               String            @id @default(uuid())
+  nomProgramme     String
+  specialite       String?
+  niveau           String
+  followProgramme  FollowProgramme[]
+  eesId            String
+  ees              ees               @relation(fields: [eesId], references: [id], onDelete: Cascade)
+  sessionAdmission sessionAdmission?
+  news             News[]
+  @@unique([nomProgramme, specialite, niveau, eesId])
+}
+
+model sessionAdmission {
+  id            String     @id @default(uuid())
+  nomConcours   String
+  etat          Boolean    @default(false)
+  concoursBio   String?
+  dateOuverture DateTime
+  limiteDepot   DateTime
+  dateExamEcrit DateTime?
+  dateExamOral  DateTime?
+  diplomeRequis String
+  adressExam    String?
+  eesId         String
+  programmeId   String?    @unique
+  ees           ees        @relation(fields: [eesId], references: [id], onDelete: Cascade)
+  programme     Programme? @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+
+  @@unique([nomConcours, eesId, programmeId])
+}
+
+model tutelleInstitutionelle {
+  id             String           @id @default(uuid())
+  nomTutelle     String
+  nomTutelleTech String?
+  tutelleBio     String?
+  siteTutelle    String?
+  logoTutelle    String?
+  paysId         String
+  news           News[]
+  followUser     FollowTutelle[]
+  ees            ees[]
+  pays           Pays             @relation(fields: [paysId], references: [id])
+}
+
+model users {
+  id               String             @id @default(uuid())
+  email            String             @unique
+  password         String
+  nom              String
+  role             Role               @default(USER)
+  dateInscription  DateTime           @default(now())
+  isActive         Boolean            @default(true)
+  folowingPrograme FollowProgramme[]
+  folowingEes      FollowEes[]
+  folowingTutelle  FollowTutelle[]
+  ees              ees[]              @relation("EESToUsers")
+}
+
+model ville {
+  id       String @id @default(uuid())
+  nomVille String
+  paysId   String
+  ees      ees[]
+  pays     Pays   @relation(fields: [paysId], references: [id])
+
+  @@unique([nomVille, paysId])
+}
+
+enum Role {
+  ADMIN
+  GESTIONAIRE
+  USER
 }

@@ -1,113 +1,123 @@
 import { getNewsAction } from "@/app/action/news";
 import Navbar from "@/components/Navbar";
-import { Calendar, ArrowRight, AlertCircle, Clock } from "lucide-react";
-import Link from "next/link";
-// On importe ton nouveau composant à la place de next/image
-import CloudinaryImage from "@/components/CloudinaryImage"; 
+import NewsFeed from "@/components/NewsFeed";
+import { Clock, Newspaper, TrendingUp, Zap } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function NewsPage() {
-    const allNews = await getNewsAction();
+  const allNews = await getNewsAction();
 
-    const formatDate = (date: Date) => {
-        return new Intl.DateTimeFormat("fr-FR", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-        }).format(new Date(date));
-    };
+  const serializedNews = allNews.map((news) => ({
+    ...news,
+    createdAt: news.createdAt.toISOString(),
+  }));
 
-    return (
-        <div className="min-h-screen bg-slate-950 text-slate-200">
-            <Navbar />
+  const urgentCount = allNews.filter((n) => n.isUrgent).length;
+  const categories = [...new Set(allNews.map((n) => n.category))];
 
-            {/* Hero Section */}
-            <div className="relative pt-32 pb-20 overflow-hidden border-b border-white/5">
-                <div className="absolute inset-0">
-                    <div className="absolute top-0 right-0 w-125 h-125 bg-indigo-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-125 h-125 bg-purple-500/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
-                </div>
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200">
+      <Navbar />
 
-                <div className="relative max-w-7xl mx-auto px-4 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold mb-6">
-                        <Clock size={14} />
-                        Actualités et Opportunités
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight">
-                        Le portail de <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-purple-400 to-pink-400">l'information</span>
-                    </h1>
-                    <p className="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed">
-                        Suivez en temps réel les communiqués officiels, les dates de concours et les opportunités académiques au Cameroun.
-                    </p>
-                </div>
-            </div>
-
-            <div className="max-w-7xl mx-auto px-4 py-20">
-                {allNews.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {allNews.map((news, idx) => (
-                            <Link
-                                key={news.id}
-                                href={`/news/${news.slug}`}
-                                className="group relative flex flex-col bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden hover:border-indigo-500/50 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10"
-                                style={{ animationDelay: `${idx * 100}ms` }}
-                            >
-                                {/* Image Thumbnail utilisant CloudinaryImage */}
-                                {news.image && (
-                                    <div className="relative h-48 w-full overflow-hidden border-b border-white/5">
-                                        <CloudinaryImage
-                                            src={news.image}
-                                            alt={news.title}
-                                            fill
-                                            className="object-cover group-hover:scale-110 transition-transform duration-700"
-                                        />
-                                        <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 to-transparent opacity-60" />
-                                    </div>
-                                )}
-
-                                {/* Content */}
-                                <div className="relative p-8 flex flex-col h-full z-10">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <span className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">
-                                            {news.category}
-                                        </span>
-                                        {news.isUrgent && (
-                                            <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-[10px] font-black text-rose-400 uppercase tracking-tighter animate-pulse">
-                                                <AlertCircle size={12} /> Urgent
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <h3 className="text-xl font-bold text-white mb-4 group-hover:text-indigo-300 transition-colors line-clamp-2 leading-tight">
-                                        {news.title}
-                                    </h3>
-
-                                    <p className="text-slate-400 text-sm mb-8 line-clamp-3 leading-relaxed font-medium">
-                                        {news.excerpt}
-                                    </p>
-
-                                    <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                                            <Calendar size={14} className="text-indigo-500/50" />
-                                            {formatDate(news.createdAt)}
-                                        </div>
-                                        <div className="flex items-center gap-1 text-indigo-400 font-black text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
-                                            Lire <ArrowRight size={14} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-40 border border-dashed border-white/10 rounded-[3rem] bg-white/2 backdrop-blur-sm">
-                        <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex items-center justify-center mx-auto mb-8 text-indigo-400">
-                            <Clock size={32} />
-                        </div>
-                        <h2 className="text-3xl font-black text-white mb-3">Aucune actualité</h2>
-                        <p className="text-slate-500 max-w-xs mx-auto font-medium">Revenez bientôt pour ne rien manquer.</p>
-                    </div>
-                )}
-            </div>
+      {/* Hero Section */}
+      <div className="relative pt-32 pb-20 overflow-hidden border-b border-white/5">
+        {/* Background glows */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/8 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/8 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/3" />
+          {/* Grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.015]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(99,102,241,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.5) 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
         </div>
-    );
+
+        <div className="relative max-w-7xl mx-auto px-4 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-8 animate-in fade-in duration-700">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute w-3 h-3 rounded-full bg-indigo-400 animate-ping opacity-50" />
+              <span className="w-2 h-2 rounded-full bg-indigo-400" />
+            </div>
+            Actualités en temps réel
+          </div>
+
+          {/* Titre */}
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight leading-none animate-in slide-in-from-bottom-6 duration-700 delay-100">
+            Le portail de{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+              l&apos;information
+            </span>
+          </h1>
+
+          <p className="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed font-medium animate-in fade-in duration-700 delay-200">
+            Suivez en temps réel les communiqués officiels, les dates de concours et
+            les opportunités académiques au Cameroun.
+          </p>
+
+          {/* Stats row */}
+          {allNews.length > 0 && (
+            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 animate-in fade-in duration-700 delay-300">
+              {/* Total publications */}
+              <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="w-8 h-8 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                  <Newspaper size={16} className="text-indigo-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-black text-white">{allNews.length}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    Publication{allNews.length > 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+
+              {/* Urgentes */}
+              {urgentCount > 0 && (
+                <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-rose-500/5 border border-rose-500/20 backdrop-blur-sm">
+                  <div className="w-8 h-8 bg-rose-500/20 rounded-xl flex items-center justify-center">
+                    <Zap size={16} className="text-rose-400 animate-pulse" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-white">{urgentCount}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                      Urgent{urgentCount > 1 ? "es" : ""}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Catégories */}
+              <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                  <TrendingUp size={16} className="text-purple-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-black text-white">{categories.length}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    Catégorie{categories.length > 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+
+              {/* Dernière mise à jour */}
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                <Clock size={12} />
+                Mis à jour en continu
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Feed */}
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <NewsFeed allNews={serializedNews} />
+      </div>
+    </div>
+  );
 }

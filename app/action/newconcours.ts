@@ -2,6 +2,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomUUID } from "crypto";
 
 /**
  * AJOUTER UN CONCOURS
@@ -11,54 +12,68 @@ export async function AddConcours(formData: FormData) {
   let targetID = "";
 
   try {
-    const nom_concours = formData.get("nom_concours") as string;
+    const nomConcours = formData.get("nom_concours") as string;
     const etat = formData.get("etat") === "on";
-    const concours_bio = formData.get("concours_bio") as string;
-    const adress_exam = formData.get("adress_exam") as string;
-    const date_ouverture = new Date(formData.get("date_ouverture") as string);
-    const limite_depot = new Date(formData.get("limite_depot") as string);
-    const date_exam = new Date(formData.get("date_exam") as string);
-    const diplome_requis = formData.get("diplome_requis") as string;
-    const ees_id = formData.get("ees_id") as string;
+    const concoursBio = formData.get("concours_bio") as string;
+    const adressExam = formData.get("adress_exam") as string;
+    const dateOuverture = new Date(formData.get("date_ouverture") as string);
+    const limiteDepot = new Date(formData.get("limite_depot") as string);
+    const dateExamEcrit = new Date(formData.get("date_exam_ecrit") as string);
+    const dateExamOral = new Date(formData.get("date_exam_oral") as string);
+    const diplomeRequis = formData.get("diplome_requis") as string;
+    const eesId = formData.get("ees_id") as string;
+    const programmeId = (formData.get("programme_id") as string) || undefined;
 
-    targetID = ees_id;
+    targetID = eesId;
 
-    if (isNaN(date_ouverture.getTime()) || isNaN(limite_depot.getTime()) || isNaN(date_exam.getTime())) {
+    if (isNaN(dateOuverture.getTime()) || isNaN(limiteDepot.getTime()) || isNaN(dateExamEcrit.getTime()) || isNaN(dateExamOral.getTime())) {
       return { error: "Format de date invalide." };
     }
 
-    if (!nom_concours || !diplome_requis || !ees_id) {
+    if (!nomConcours || !diplomeRequis || !eesId) {
       return { error: "Veuillez remplir tous les champs obligatoires." };
     }
 
-    if (limite_depot > date_exam) {
-      return { error: "La date limite de dépôt doit être avant la date de l'examen veuillez verifier les informations entrer" };
+    if (limiteDepot > dateExamEcrit) {
+      return { error: "La date limite de dépôt doit être avant la date de l'examen ecrit veuillez verifier les informations entrer" };
     }
-    if (date_ouverture > limite_depot) {
+    if (limiteDepot > dateExamOral) {
+      return { error: "La date limite de dépôt doit être avant la date de l'examen oral veuillez verifier les informations entrer" };
+    }
+    if (dateOuverture > limiteDepot) {
       return { error: "La date d'ouverture doit être avant la date limite de dépôt veuillez verifier les informations entrer" };
     }
-    if (date_exam < limite_depot) {
-      return { error: "La date de l'examen doit être après la date limite de dépôt veuillez verifier les informations entrer" };
+    if (dateExamEcrit < limiteDepot) {
+      return { error: "La date de l'examen ecrit doit être après la date limite de dépôt veuillez verifier les informations entrer" };
     }
-    if (date_exam < date_ouverture) {
-      return { error: "La date de l'examen doit être après la date d'ouverture veuillez verifier les informations entrer" };
+    if (dateExamOral < limiteDepot) {
+      return { error: "La date de l'examen oral doit être après la date limite de dépôt veuillez verifier les informations entrer" };
+    }
+    if (dateExamEcrit < dateOuverture) {
+      return { error: "La date de l'examen ecrit doit être après la date d'ouverture veuillez verifier les informations entrer" };
+    }
+    if (dateExamOral < dateOuverture) {
+      return { error: "La date de l'examen oral doit être après la date d'ouverture veuillez verifier les informations entrer" };
     }
 
-    await prisma.concours.create({
+    await prisma.sessionAdmission.create({
       data: {
-        nom_concours,
+        id: randomUUID(),
+        nomConcours,
         etat,
-        concours_bio,
-        date_ouverture,
-        date_exam,
-        limite_depot,
-        diplome_requis,
-        adress_exam,
-        ees: { connect: { id: ees_id } }
+        concoursBio,
+        dateOuverture,
+        limiteDepot,
+        dateExamEcrit,
+        dateExamOral,
+        diplomeRequis,
+        adressExam,
+        ees: { connect: { id: eesId } },
+        ...(programmeId ? { programme: { connect: { id: programmeId } } } : {}),
       }
     });
 
-    revalidatePath(`/gestionnaireconcours/${ees_id}`);
+    revalidatePath(`/gestionnaireconcours/${eesId}`);
     isSuccess = true;
   } catch (error: any) {
     console.error("Erreur AddConcours:", error);
@@ -66,11 +81,11 @@ export async function AddConcours(formData: FormData) {
   }
 
   if (isSuccess) {
-    const ees = await prisma.eES.findUnique({
+    const ees = await prisma.ees.findUnique({
       where: { id: targetID },
-      select: { nom_ees: true, tutelle_id: true }
+      select: { nomEes: true, tutelleId: true }
     });
-    redirect(`/gestionnaireconcours/${targetID}?nom_ees=${encodeURIComponent(ees?.nom_ees || "")}&tutelle_id=${ees?.tutelle_id}`);
+    redirect(`/gestionnaireconcours/${targetID}?nom_ees=${encodeURIComponent(ees?.nomEes || "")}&tutelle_id=${ees?.tutelleId || ""}`);
   }
 }
 
@@ -83,47 +98,69 @@ export async function UpdateConcours(formData: FormData) {
 
   try {
     const id = formData.get("id") as string;
-    const nom_concours = formData.get("nom_concours") as string;
+    const nomConcours = formData.get("nom_concours") as string;
     const etat = formData.get("etat") === "on" || formData.get("etat") === "true";
-    const concours_bio = formData.get("concours_bio") as string;
-    const adress_exam = formData.get("adress_exam") as string;
-    const date_ouverture = new Date(formData.get("date_ouverture") as string);
-    const limite_depot = new Date(formData.get("limite_depot") as string);
-    const date_exam = new Date(formData.get("date_exam") as string);
-    const diplome_requis = formData.get("diplome_requis") as string;
-    const ees_id = formData.get("ees_id") as string;
+    const concoursBio = formData.get("concours_bio") as string;
+    const adressExam = formData.get("adress_exam") as string;
+    const dateOuverture = new Date(formData.get("date_ouverture") as string);
+    const limiteDepot = new Date(formData.get("limite_depot") as string);
+    const dateExamEcrit = new Date(formData.get("date_exam_ecrit") as string);
+    const dateExamOral = new Date(formData.get("date_exam_oral") as string);
+    const diplomeRequis = formData.get("diplome_requis") as string;
+    const eesId = formData.get("ees_id") as string;
+    const programmeId = (formData.get("programme_id") as string) || undefined;
 
-    targetID = ees_id;
+    targetID = eesId;
 
-
-    if (limite_depot > date_exam) {
-      return { error: "La date limite de dépôt doit être avant la date de l'examen veuillez verifier les informations entrer " };
+    if (isNaN(dateOuverture.getTime()) || isNaN(limiteDepot.getTime()) || isNaN(dateExamEcrit.getTime()) || isNaN(dateExamOral.getTime())) {
+      return { error: "Format de date invalide." };
     }
-    if (date_ouverture > limite_depot) {
+
+    if (!nomConcours || !diplomeRequis || !eesId) {
+      return { error: "Veuillez remplir tous les champs obligatoires." };
+    }
+
+    if (limiteDepot > dateExamEcrit) {
+      return { error: "La date limite de dépôt doit être avant la date de l'examen ecrit veuillez verifier les informations entrer " };
+    }
+    if (limiteDepot > dateExamOral) {
+      return { error: "La date limite de dépôt doit être avant la date de l'examen oral veuillez verifier les informations entrer " };
+    }
+    if (dateOuverture > limiteDepot) {
       return { error: "La date d'ouverture doit être avant la date limite de dépôt veuillez verifier les informations entrer" };
     }
-    if (date_exam < limite_depot) {
-      return { error: "La date de l'examen doit être après la date limite de dépôt veuillez verifier les informations entrer" };
+    if (dateExamEcrit < limiteDepot) {
+      return { error: "La date de l'examen ecrit doit être après la date limite de dépôt veuillez verifier les informations entrer" };
     }
-    if (date_exam < date_ouverture) {
-      return { error: "La date de l'examen doit être après la date d'ouverture veuillez verifier les informations entrer" };
+    if (dateExamOral < limiteDepot) {
+      return { error: "La date de l'examen oral ecrit doit être après la date limite de dépôt veuillez verifier les informations entrer" };
+    }
+    if (dateExamEcrit < dateOuverture) {
+      return { error: "La date de l'examen ecrit doit être après la date d'ouverture veuillez verifier les informations entrer" };
+    }
+    if (dateExamOral < dateOuverture) {
+      return { error: "La date de l'examen oral doit être après la date d'ouverture veuillez verifier les informations entrer" };
     }
 
-    await prisma.concours.update({
+    await prisma.sessionAdmission.update({
       where: { id },
       data: {
-        nom_concours,
+        nomConcours,
         etat,
-        concours_bio,
-        date_ouverture,
-        date_exam,
-        limite_depot,
-        diplome_requis,
-        adress_exam,
+        concoursBio,
+        dateOuverture,
+        dateExamEcrit,
+        dateExamOral,
+        limiteDepot,
+        diplomeRequis,
+        adressExam,
+        programme: programmeId
+          ? { connect: { id: programmeId } }
+          : { disconnect: true },
       }
     });
 
-    revalidatePath(`/gestionnaireconcours/${ees_id}`);
+    revalidatePath(`/gestionnaireconcours/${eesId}`);
     isSuccess = true;
   } catch (error: any) {
     console.error("Erreur UpdateConcours:", error);
@@ -131,11 +168,11 @@ export async function UpdateConcours(formData: FormData) {
   }
 
   if (isSuccess) {
-    const ees = await prisma.eES.findUnique({
+    const ees = await prisma.ees.findUnique({
       where: { id: targetID },
-      select: { nom_ees: true, tutelle_id: true }
+      select: { nomEes: true, tutelleId: true }
     });
-    redirect(`/gestionnaireconcours/${targetID}?nom_ees=${encodeURIComponent(ees?.nom_ees || "")}&tutelle_id=${ees?.tutelle_id}`);
+    redirect(`/gestionnaireconcours/${targetID}?nom_ees=${encodeURIComponent(ees?.nomEes || "")}&tutelle_id=${ees?.tutelleId || ""}`);
   }
 }
 
@@ -147,16 +184,15 @@ export async function DeleteConcours(id: string, ees_id: string) {
   let eesInfo = null;
 
   try {
-    eesInfo = await prisma.eES.findUnique({
+    eesInfo = await prisma.ees.findUnique({
       where: { id: ees_id },
-      select: { nom_ees: true, tutelle_id: true }
+      select: { nomEes: true, tutelleId: true }
     });
 
-    await prisma.concours.delete({ where: { id } });
+    await prisma.sessionAdmission.delete({ where: { id } });
     revalidatePath(`/gestionnaireconcours/${ees_id}`);
     isSuccess = true;
   } catch (error: any) {
-    // AJOUTEZ CECI : Laisse passer la redirection sans entrer dans le catch
     if (error.digest?.includes("NEXT_REDIRECT")) throw error;
 
     console.error("Erreur:", error);
@@ -164,17 +200,26 @@ export async function DeleteConcours(id: string, ees_id: string) {
   }
 
   if (isSuccess) {
-    redirect(`/gestionnaireconcours/${ees_id}?nom_ees=${encodeURIComponent(eesInfo?.nom_ees || "")}&tutelle_id=${eesInfo?.tutelle_id}`);
+    redirect(`/gestionnaireconcours/${ees_id}?nom_ees=${encodeURIComponent(eesInfo?.nomEes || "")}&tutelle_id=${eesInfo?.tutelleId || ""}`);
   }
 }
 
 export async function GetConcoursById(id: string) {
-  return await prisma.concours.findUnique({
+  return await prisma.sessionAdmission.findUnique({
     where: { id },
     include: {
       ees: {
-        include: { tutelle: true }
-      }
+        include: { tutelleInstitutionelle: true }
+      },
+      programme: true,
     }
+  });
+}
+
+export async function GetProgrammesByEes(eesId: string) {
+  return await prisma.programme.findMany({
+    where: { eesId },
+    orderBy: { nomProgramme: "asc" },
+    select: { id: true, nomProgramme: true, niveau: true, specialite: true },
   });
 }

@@ -18,12 +18,16 @@ export default function Navbar() {
   const [user, setUser] = useState<UserType | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     async function checkUser() {
-      const currentUser = await GetCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        const currentUser = await GetCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Navbar checkUser error:", error);
+      } finally {
+        setLoading(false);
+      }
     }
     checkUser();
   }, []);
@@ -47,7 +51,7 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-black/30 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-4 pr-16 sm:px-6 sm:pr-16 lg:px-8 lg:pr-16 py-4">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
@@ -86,29 +90,53 @@ export default function Navbar() {
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-56 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="px-4 py-3 border-b border-white/5 bg-white/5">
-                      <p className="text-sm text-white font-bold truncate">{user.nom}</p>
-                      <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-3 w-56 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-4 py-3 border-b border-white/5 bg-white/5">
+                        <p className="text-sm text-white font-bold truncate">{user.nom}</p>
+                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                      </div>
+                      <div className="p-1">
+                        <Link
+                          href="/profile"
+                          className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          <User size={18} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium text-sm">Mon Profil</span>
+                        </Link>
+                        {user.role === 'ADMIN' && (
+                          <Link
+                            href="/profile/admin"
+                            className="flex items-center gap-3 px-3 py-2.5 text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded-xl transition-all group"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            <span className="font-medium text-sm">Console Admin</span>
+                          </Link>
+                        )}
+                        {user.role === 'GESTIONAIRE' && (
+                          <Link
+                            href="/profile/gestion"
+                            className="flex items-center gap-3 px-3 py-2.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-xl transition-all group"
+                            onClick={() => setIsDropdownOpen(false)}
+                          >
+                            <span className="font-medium text-sm">Espace Gestion</span>
+                          </Link>
+                        )}
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all group cursor-pointer"
+                        >
+                          <LogOut size={18} className="group-hover:scale-110 transition-transform" />
+                          <span className="font-medium text-sm text-left">Déconnexion</span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-1">
-                      <Link
-                        href="/profile"
-                        className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
-                        onClick={() => setIsDropdownOpen(false)}
-                      >
-                        <User size={18} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                        <span className="font-medium text-sm">Mon Profil</span>
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all group"
-                      >
-                        <LogOut size={18} className="group-hover:scale-110 transition-transform" />
-                        <span className="font-medium text-sm text-left">Déconnexion</span>
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
             ) : (

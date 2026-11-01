@@ -1,6 +1,6 @@
 import { getNewsBySlugAction } from "@/app/action/news";
 import Navbar from "@/components/Navbar";
-import { ArrowLeft, Calendar, Tag, ExternalLink, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, ExternalLink, AlertCircle, Building2, GraduationCap, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 // Importe ton composant personnalisé qui gère déjà le loader côté client
@@ -75,6 +75,26 @@ export default async function NewsDetailPage({ params }: { params: { slug: strin
                     <div className="p-8 bg-white/3 backdrop-blur-xl border-l-[6px] border-indigo-500 rounded-2xl rounded-l-none italic text-slate-300 text-xl leading-relaxed">
                         {news.excerpt}
                     </div>
+
+                    {(news.ees || news.tutelle || news.programme) && (
+                        <div className="mt-8 flex flex-wrap gap-3">
+                            {news.ees && (
+                                <Link href={`/explore/${news.ees.id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 transition">
+                                    <GraduationCap size={14} /> {news.ees.nomEes}
+                                </Link>
+                            )}
+                            {news.tutelle && (
+                                <Link href={`/tutelles/${news.tutelle.id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold hover:bg-amber-500/20 transition">
+                                    <Building2 size={14} /> {news.tutelle.nomTutelle}
+                                </Link>
+                            )}
+                            {news.programme && (
+                                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-bold">
+                                    <Sparkles size={14} /> {news.programme.nomProgramme} ({news.programme.niveau})
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 {/* Article Content */}

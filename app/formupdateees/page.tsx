@@ -16,9 +16,9 @@ export default async function Page({
 
     if (id) {
         try {
-            const etablissement = await prisma.eES.findUnique({ 
+            const etablissement = await prisma.ees.findUnique({ 
                 where: { id },
-                include: { filieres: true } // On n'oublie pas les filières !
+                include: { programme: true, ville: true }
             });
             if (etablissement) {
                 safeData = JSON.parse(JSON.stringify(etablissement));

@@ -1,34 +1,42 @@
 "use client";
 
 import { UpdateTutelle } from "../action/newtutelle";
-import { useRouter } from "next/navigation";
-import { Sparkles, MapPin, Building2, TextQuote, CheckCircle2 } from "lucide-react";
+import { GetPays } from "../action/location";
+import { useEffect, useState } from "react";
+import { Sparkles, MapPin, Building2, TextQuote, CheckCircle2, Globe } from "lucide-react";
 
 interface TutelleProps {
     data: {
         id: string;
-        nom_tutelle: string;
+        nomTutelle?: string;
+        nom_tutelle?: string;
+        nomTutelleTech?: string | null;
         nom_tutelle_tech?: string | null;
-        region: string;
+        siteTutelle?: string | null;
+        site_tutelle?: string | null;
+        paysId?: string;
+        region?: string;
+        pays?: { id?: string; nomPays?: string; region?: string } | null;
+        tutelleBio?: string | null;
         tutelle_bio?: string | null;
     };
 }
 
 export default function FormTutelleClient({ data }: TutelleProps) {
-    // const router = useRouter();
+    const [paysList, setPaysList] = useState<{ id: string; nomPays: string; region: string }[]>([]);
+
+    useEffect(() => {
+        GetPays().then(setPaysList);
+    }, []);
 
     async function handleClientAction(formData: FormData) {
-        // On force l'ID de la base de données dans le formulaire
         formData.append("id", data.id);
-
         const result = await UpdateTutelle(formData);
 
         if (result?.error) {
             alert("❌ Erreur : " + result.error);
         } else {
             alert("✅ Réussite ! L'institut a été mis à jour.");
-            //router.refresh(); 
-            // router.push("/gestionnairetutelle"); 
         }
     }
 
@@ -50,7 +58,7 @@ export default function FormTutelleClient({ data }: TutelleProps) {
                         </div>
                         <div className="relative">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-                                <Sparkles size={12} /> Gestion des Tutelles
+                                <Sparkles size={12} /> Gestion des Tutelles (Hiérarchie: Pays → Tutelle)
                             </div>
                             <h1 className="text-5xl font-black text-white tracking-tighter leading-none mb-4">
                                 Institution <span className="bg-linear-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">Tutélaire</span>
@@ -81,13 +89,12 @@ export default function FormTutelleClient({ data }: TutelleProps) {
                                     placeholder="ex: Ministère de l'Enseignement Supérieur"
                                     required
                                     className="glass-input p-5 rounded-2xl w-full"
-                                    defaultValue={data?.nom_tutelle}
+                                    defaultValue={data?.nomTutelle ?? data?.nom_tutelle}
                                 />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Tutelle Technique */}
                             <div className="flex flex-col gap-3">
                                 <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
                                     Tutelle Technique
@@ -97,27 +104,62 @@ export default function FormTutelleClient({ data }: TutelleProps) {
                                     name="nom_tutelle_tech"
                                     placeholder="Nom technique (optionnel)"
                                     className="glass-input p-5 rounded-2xl w-full"
-                                    defaultValue={data?.nom_tutelle_tech || ""}
+                                    defaultValue={data?.nomTutelleTech ?? data?.nom_tutelle_tech ?? ""}
                                 />
                             </div>
 
-                            {/* Région */}
                             <div className="flex flex-col gap-3">
                                 <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
-                                    Région ou Pays
+                                    Site Web Officiel
                                 </label>
                                 <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
                                     <input
-                                        type="text"
-                                        name="region"
-                                        placeholder="ex: Centre, Cameroun"
-                                        required
+                                        type="url"
+                                        name="site_tutelle"
+                                        placeholder="https://minesup.gov.cm"
                                         className="glass-input p-5 pl-12 rounded-2xl w-full"
-                                        defaultValue={data?.region}
+                                        defaultValue={data?.siteTutelle ?? data?.site_tutelle ?? ""}
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Pays de rattachement */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="flex flex-col gap-3">
+                                <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
+                                    Pays de Rattachement
+                                </label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                    <select
+                                        name="pays_id"
+                                        defaultValue={data?.pays?.id ?? data?.paysId ?? ""}
+                                        className="glass-input p-5 pl-12 rounded-2xl w-full [&>option]:bg-slate-900 [&>option]:text-white"
+                                    >
+                                        <option value="">Sélectionner un pays existant</option>
+                                        {paysList.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.nomPays} ({p.region})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* <div className="flex flex-col gap-3">
+                                <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
+                                    Ou Changer de Région/Pays
+                                </label>
+                                <input
+                                    type="text"
+                                    name="nom_pays"
+                                    placeholder="ex: Cameroun, Gabon..."
+                                    className="glass-input p-5 rounded-2xl w-full"
+                                    defaultValue={data?.pays?.nomPays ?? data?.pays?.region ?? data?.region ?? ""}
+                                />
+                            </div> */}
                         </div>
 
                         {/* Bio / Description */}
@@ -139,7 +181,7 @@ export default function FormTutelleClient({ data }: TutelleProps) {
                                     placeholder="Décrivez en quelques mots la mission de cette structure..."
                                     rows={4}
                                     className="glass-input p-5 rounded-2xl w-full resize-none"
-                                    defaultValue={data?.tutelle_bio || ""}
+                                    defaultValue={data?.tutelleBio ?? data?.tutelle_bio ?? ""}
                                 ></textarea>
                             </div>
                         </div>
@@ -148,7 +190,7 @@ export default function FormTutelleClient({ data }: TutelleProps) {
                         <div className="pt-6">
                             <button
                                 type="submit"
-                                className="w-full bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-emerald-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group"
+                                className="w-full bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-emerald-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group cursor-pointer"
                             >
                                 <CheckCircle2 size={24} className="group-hover:scale-110 transition-transform" />
                                 <span>Sauvegarder les modifications</span>

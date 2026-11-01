@@ -3,6 +3,8 @@ import Link from "next/link";
 import { MapPin, BookOpen, Building2, ExternalLink, Calendar, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import FollowEesButton from "@/components/FollowEesButton";
+import { IsFollowingEes } from "@/app/action/user";
 
 interface DetailPageProps {
   params: Promise<{ id: string }>;
@@ -11,22 +13,25 @@ interface DetailPageProps {
 export default async function DetailPage({ params }: DetailPageProps) {
   const { id } = await params;
 
-  const ees = await prisma.eES.findUnique({
+  const ees = await prisma.ees.findUnique({
     where: { id },
     include: {
-      tutelle: true,
-      filieres: true, // Corrigé : On récupère juste la liste simple
-      concours: {
-        orderBy: { limite_depot: "desc" },
+      tutelleInstitutionelle: true,
+      ville: true,
+      programme: true,
+      sessionAdmission: {
+        orderBy: { limiteDepot: "desc" },
         take: 5,
       },
       _count: {
-        select: { filieres: true, concours: true },
+        select: { programme: true, sessionAdmission: true },
       },
     },
   });
 
   if (!ees) notFound();
+
+  const isFollowing = await IsFollowingEes(id);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("fr-FR", {
@@ -49,18 +54,22 @@ export default async function DetailPage({ params }: DetailPageProps) {
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-32">
         <div className="mb-16 animate-scale-in">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-            <Sparkles size={12} /> {ees.ees_type}
+            <Sparkles size={12} /> {ees.eesType}
           </div>
-          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-none">{ees.nom_ees}</h1>
+          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-none">{ees.nomEes}</h1>
+
+          <div className="mb-8">
+            <FollowEesButton eesId={ees.id} initialFollowing={isFollowing} />
+          </div>
 
           <div className="flex flex-wrap gap-8">
             <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-sm group hover:border-pink-500/30 transition-all">
               <MapPin className="w-5 h-5 text-pink-500 group-hover:scale-110 transition-transform" />
-              <span className="font-bold text-slate-300">{ees.ville}</span>
+              <span className="font-bold text-slate-300">{ees.ville?.nomVille || 'N/A'}</span>
             </div>
             <div className="flex items-center gap-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-sm group hover:border-amber-500/30 transition-all">
               <Building2 className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
-              <span className="font-bold text-slate-300">Tutelle : {ees.tutelle.nom_tutelle}</span>
+              <span className="font-bold text-slate-300">Tutelle : {ees.tutelleInstitutionelle?.nomTutelle || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -79,11 +88,11 @@ export default async function DetailPage({ params }: DetailPageProps) {
                 Présentation
               </h2>
               <p className="text-slate-400 text-lg font-medium leading-relaxed relative">
-                {ees.ees_bio || `L'établissement ${ees.nom_ees} intervient principalement dans le domaine d'excellence : ${ees.domaine}.`}
+                {ees.eesBio || `L'établissement ${ees.nomEes} intervient principalement dans le domaine d'excellence : ${ees.domaine}.`}
               </p>
             </section>
 
-            {/* Filières */}
+            {/* Filières / Programmes */}
             <section className="glass-card rounded-[40px] p-10 border-white/5 shadow-2xl">
               <div className="flex items-center justify-between mb-10">
                 <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-4">
@@ -91,25 +100,28 @@ export default async function DetailPage({ params }: DetailPageProps) {
                   Offres de Formation
                 </h2>
                 <div className="px-4 py-1.5 bg-blue-500/10 rounded-full border border-blue-500/20 text-blue-400 text-xs font-black uppercase tracking-widest">
-                  {ees._count.filieres} Filières
+                  {ees._count.programme} Filières
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {ees.filieres.map((filiere) => (
-                  <div key={filiere.id} className="p-6 bg-white/[0.03] rounded-[32px] border border-white/5 hover:border-indigo-500/30 transition-all group">
-                    <h3 className="font-black text-white group-hover:text-indigo-300 transition-colors text-lg tracking-tight mb-1">{filiere.nom_filiere}</h3>
-                    {filiere.mention ? (
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mention: <span className="text-slate-400">{filiere.mention}</span></p>
+                {ees.programme.map((p) => (
+                  <div key={p.id} className="p-6 bg-white/[0.03] rounded-[32px] border border-white/5 hover:border-indigo-500/30 transition-all group">
+                    <h3 className="font-black text-white group-hover:text-indigo-300 transition-colors text-lg tracking-tight mb-1">{p.nomProgramme}</h3>
+                    {p.specialite ? (
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Spécialité: <span className="text-slate-400">{p.specialite}</span></p>
                     ) : (
                       <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Programme Supérieur</p>
+                    )}
+                    {p.niveau && (
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Niveau: <span className="text-slate-400">{p.niveau}</span></p>
                     )}
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* Concours */}
+            {/* Concours / Sessions */}
             <section className="glass-card rounded-[40px] p-10 border-white/5 shadow-2xl">
               <div className="flex items-center justify-between mb-10">
                 <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-4">
@@ -117,19 +129,19 @@ export default async function DetailPage({ params }: DetailPageProps) {
                   Sessions de Concours
                 </h2>
                 <div className="px-4 py-1.5 bg-orange-500/10 rounded-full border border-orange-500/20 text-orange-400 text-xs font-black uppercase tracking-widest">
-                  {ees._count.concours} Opportunités
+                  {ees._count.sessionAdmission} Opportunités
                 </div>
               </div>
 
               <div className="space-y-6">
-                {ees.concours.map((c) => (
+                {ees.sessionAdmission.map((c) => (
                   <div key={c.id} className="p-8 bg-white/[0.03] rounded-[32px] border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:bg-white/[0.05] transition-all group">
                     <div className="space-y-2">
-                      <h3 className="text-xl font-black text-white group-hover:text-amber-400 transition-colors tracking-tight">{c.nom_concours}</h3>
+                      <h3 className="text-xl font-black text-white group-hover:text-amber-400 transition-colors tracking-tight">{c.nomConcours}</h3>
                       <div className="flex flex-wrap gap-4 items-center">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Diplôme : <span className="text-slate-300">{c.diplome_requis}</span></p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Diplôme : <span className="text-slate-300">{c.diplomeRequis}</span></p>
                         <div className="flex items-center gap-2 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em]">
-                          <Calendar size={12} /> Limite : {formatDate(c.limite_depot)}
+                          <Calendar size={12} /> Limite : {formatDate(c.limiteDepot)}
                         </div>
                       </div>
                     </div>
@@ -138,7 +150,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
                     </div>
                   </div>
                 ))}
-                {ees.concours.length === 0 && (
+                {ees.sessionAdmission.length === 0 && (
                   <p className="text-center py-10 text-slate-500 font-bold italic">Aucun concours programmé pour le moment.</p>
                 )}
               </div>
@@ -154,9 +166,9 @@ export default async function DetailPage({ params }: DetailPageProps) {
               <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4">Vecteur Officiel</h3>
               <p className="text-slate-400 text-sm font-medium mb-10 leading-relaxed">Consultez les informations authentifiées directement sur le portail de l'établissement.</p>
 
-              {ees.site_ees ? (
+              {ees.siteEes ? (
                 <a
-                  href={ees.site_ees.startsWith('http') ? ees.site_ees : `https://${ees.site_ees}`}
+                  href={ees.siteEes.startsWith('http') ? ees.siteEes : `https://${ees.siteEes}`}
                   target="_blank"
                   className="w-full py-5 bg-linear-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-[20px] shadow-xl hover:shadow-indigo-500/30 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
                 >
@@ -174,7 +186,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
                 <MapPin size={24} className="text-pink-400" />
               </div>
               <h4 className="font-black text-white uppercase tracking-widest text-xs mb-2">Campus Local</h4>
-              <p className="text-slate-400 font-bold">{ees.ville}, Cameroun</p>
+              <p className="text-slate-400 font-bold">{ees.ville?.nomVille || 'N/A'}, Cameroun</p>
             </div>
           </aside>
         </div>

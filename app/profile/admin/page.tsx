@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GetAllUsers, UpdateUserStatus, UpdateUserRole, GetCurrentUser, GetSystemStats, GetAllEes, AssignEesToUser } from '@/app/action/user';
+import { GetAllUsers, UpdateUserStatus, UpdateUserRole, GetCurrentUser, GetSystemStats, GetAllEes, AssignEesToUser, GetAllSubscriptions, DeleteAdminSubscription } from '@/app/action/user';
 import {
     User, Mail, Power, Search, Loader2,
     ShieldCheck, ArrowLeft, ChevronRight,
     LayoutDashboard, Users, Newspaper,
     Calendar, School, BarChart3, TrendingUp,
-    ArrowRight
+    ArrowRight, BellRing, Trash2
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
@@ -16,17 +16,19 @@ export default function AdminConsole() {
     const [users, setUsers] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [eesList, setEesList] = useState<any[]>([]);
+    const [subscriptions, setSubscriptions] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentUser, setCurrentUser] = useState<any>(null);
 
     const init = async () => {
         try {
-            const [userData, allUsers, systemStats, allEes] = await Promise.all([
+            const [userData, allUsers, systemStats, allEes, allSubscriptions] = await Promise.all([
                 GetCurrentUser(),
                 GetAllUsers(),
                 GetSystemStats(),
-                GetAllEes()
+                GetAllEes(),
+                GetAllSubscriptions()
             ]);
 
             setCurrentUser(userData);
@@ -34,6 +36,7 @@ export default function AdminConsole() {
                 setUsers(allUsers || []);
                 setStats(systemStats);
                 setEesList(allEes || []);
+                setSubscriptions(allSubscriptions);
             }
         } catch (error) {
             console.error("Erreur d'initialisation Admin:", error);
@@ -48,6 +51,13 @@ export default function AdminConsole() {
         u.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleDeleteSubscription = async (type: 'ees' | 'tutelle' | 'programme', id: string) => {
+        const result = await DeleteAdminSubscription(type, id);
+        if (!result?.error) {
+            init();
+        }
+    };
 
     if (loading) {
         return (
@@ -122,6 +132,60 @@ export default function AdminConsole() {
                         ))}
                     </div>
                 )}
+
+                <div className="mb-8 flex flex-wrap gap-3">
+                    <Link href="/formpays" className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">+ Pays</Link>
+                    <Link href="/formville" className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">+ Ville</Link>
+                    <Link href="/formprogramme" className="rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-violet-300">+ Programme</Link>
+                </div>
+
+                <div className="mb-12 bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 overflow-hidden shadow-2xl animate-scale-in delay-100">
+                    <div className="px-8 py-6 border-b border-white/5 bg-white/2 flex items-center justify-between">
+                        <h2 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">
+                            <BellRing size={18} className="text-pink-400" />
+                            Contrôle des Abonnements
+                        </h2>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            {subscriptions ? ((subscriptions.ees?.length || 0) + (subscriptions.tutelles?.length || 0) + (subscriptions.programmes?.length || 0)) : 0} abonnement(s)
+                        </span>
+                    </div>
+
+                    <div className="p-8 grid gap-6 xl:grid-cols-3">
+                        {[
+                            { label: 'Établissements', items: subscriptions?.ees || [], type: 'ees', value: (item: any) => item.ees?.nomEes || '—' },
+                            { label: 'Tutelles', items: subscriptions?.tutelles || [], type: 'tutelle', value: (item: any) => item.tutelle?.nomTutelle || '—' },
+                            { label: 'Programmes', items: subscriptions?.programmes || [], type: 'programme', value: (item: any) => item.programme?.nomProgramme || '—' },
+                        ].map((group) => (
+                            <div key={group.label} className="rounded-3xl border border-white/10 bg-slate-900/50 p-5">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h3 className="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-black">{group.label}</h3>
+                                    <span className="text-[10px] text-slate-500">{group.items.length}</span>
+                                </div>
+                                <div className="space-y-3 max-h-[320px] overflow-auto pr-1">
+                                    {group.items.length === 0 ? (
+                                        <p className="text-sm text-slate-500 italic">Aucun abonnement.</p>
+                                    ) : group.items.map((item: any) => (
+                                        <div key={item.id} className="rounded-2xl border border-white/10 bg-white/3 p-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-bold text-white">{group.value(item)}</p>
+                                                    <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em]">{item.user?.nom} · {item.user?.email}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteSubscription(group.type as 'ees' | 'tutelle' | 'programme', item.id)}
+                                                    className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-rose-300 hover:bg-rose-500/20 transition-colors"
+                                                    title="Supprimer l'abonnement"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
                 <div className="bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 overflow-hidden shadow-2xl animate-scale-in delay-100">
                     <div className="px-8 py-6 border-b border-white/5 bg-white/2 flex items-center justify-between">

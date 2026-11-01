@@ -6,19 +6,30 @@ import { useState, useRef, useEffect } from "react";
 
 interface EesData {
   id: string;
-  nom_ees: string;
-  ees_type: string;
-  ville: string;
+  nomEes?: string;
+  nom_ees?: string;
+  eesType?: string;
+  ees_type?: string;
+  ville?: string | { nomVille: string } | null;
   domaine: string;
+  siteEes?: string | null;
   site_ees?: string | null;
-  tutelle_id: string;
-  tutelle: {
-    nom_tutelle: string;
+  tutelleId?: string;
+  tutelle_id?: string;
+  tutelleInstitutionelle?: {
+    nomTutelle: string;
   };
-  filieres?: { nom_filiere: string }[];
+  tutelle?: {
+    nom_tutelle?: string;
+    nomTutelle?: string;
+  };
+  programme?: { nomProgramme?: string; nom_filiere?: string }[];
+  filieres?: { nom_filiere?: string; nomProgramme?: string }[];
   _count?: {
-    filieres: number;
-    concours: number;
+    programme?: number;
+    sessionAdmission?: number;
+    filieres?: number;
+    concours?: number;
   };
 }
 
@@ -33,6 +44,16 @@ export default function EesCard({ data, onEdit }: EesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
+  const nomEes = data.nomEes ?? data.nom_ees ?? "";
+  const eesType = data.eesType ?? data.ees_type ?? "";
+  const siteEes = data.siteEes ?? data.site_ees;
+  const tutelleId = data.tutelleId ?? data.tutelle_id ?? "";
+  const villeName = typeof data.ville === "object" ? (data.ville?.nomVille ?? "") : (data.ville ?? "");
+  const nomTutelle = data.tutelleInstitutionelle?.nomTutelle ?? data.tutelle?.nomTutelle ?? data.tutelle?.nom_tutelle ?? "N/A";
+  const programmes = data.programme ?? data.filieres ?? [];
+  const countProgrammes = data._count?.programme ?? data._count?.filieres ?? programmes.length;
+  const countConcours = data._count?.sessionAdmission ?? data._count?.concours ?? 0;
+
   useEffect(() => {
     setMounted(true);
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,9 +66,9 @@ export default function EesCard({ data, onEdit }: EesProps) {
   }, []);
 
   const handleDelete = async () => {
-    if (window.confirm(`Supprimer définitivement ${data.nom_ees} ?`)) {
+    if (window.confirm(`Supprimer définitivement ${nomEes} ?`)) {
       setIsDeleting(true);
-      await DeleteEes(data.id, data.tutelle_id);
+      await DeleteEes(data.id, tutelleId);
       setIsDeleting(false);
     }
   };
@@ -62,18 +83,18 @@ export default function EesCard({ data, onEdit }: EesProps) {
         <div className="flex justify-between items-start mb-5">
           <div className="flex flex-col gap-2">
             <span className="w-fit px-4 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest border border-indigo-100/50">
-              {data.ees_type}
+              {eesType}
             </span>
             <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[11px] uppercase tracking-tighter bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
               <MapPin className="h-3.5 w-3.5 text-rose-500" />
-              {data.ville}
+              {villeName}
             </div>
           </div>
 
           {/* BOUTONS D'ACTION TOUJOURS VISIBLES */}
           <div className="flex gap-2">
             <Link
-              href={`/formupdateees?id=${data.id}&tutelle_id=${data.tutelle_id}`}
+              href={`/formupdateees?id=${data.id}&tutelle_id=${tutelleId}`}
               className="p-3 bg-amber-50 text-amber-600 rounded-2xl hover:bg-amber-100 transition-colors shadow-sm border border-amber-100"
               onClick={() => onEdit?.(data)}
             >
@@ -89,7 +110,7 @@ export default function EesCard({ data, onEdit }: EesProps) {
         </div>
 
         <h2 className="text-2xl font-black text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors duration-300">
-          {data.nom_ees}
+          {nomEes}
         </h2>
       </div>
 
@@ -111,19 +132,19 @@ export default function EesCard({ data, onEdit }: EesProps) {
           </div>
           <div>
             <p className="text-[10px] text-amber-500 uppercase font-black tracking-widest mb-1">Sous tutelle de</p>
-            <p className="text-[14px] font-bold text-slate-700 leading-snug line-clamp-1">{data.tutelle.nom_tutelle}</p>
+            <p className="text-[14px] font-bold text-slate-700 leading-snug line-clamp-1">{nomTutelle}</p>
           </div>
         </div>
 
-        {data.site_ees && (
+        {siteEes && (
           <div className="flex items-start gap-4">
             <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
               <Globe className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] text-blue-400 uppercase font-black tracking-widest mb-1">Site Web</p>
-              <a href={data.site_ees} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1.5 transition-colors">
-                <span className="truncate">{data.site_ees.replace(/(^\w+:|^)\/\//, '')}</span>
+              <a href={siteEes} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1.5 transition-colors">
+                <span className="truncate">{siteEes.replace(/(^\w+:|^)\/\//, '')}</span>
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -141,7 +162,7 @@ export default function EesCard({ data, onEdit }: EesProps) {
                 }`}
             >
               <GraduationCap className={`h-4 w-4 ${showFiliere ? "text-white" : "text-indigo-500"}`} />
-              {data._count?.filieres || 0} Filières
+              {countProgrammes} Filières
             </button>
 
             {showFiliere && (
@@ -151,10 +172,10 @@ export default function EesCard({ data, onEdit }: EesProps) {
                   <X className="h-4 w-4 cursor-pointer" onClick={() => setShowFiliere(false)} />
                 </div>
                 <div className="p-3 max-h-64 overflow-y-auto">
-                  {data.filieres?.map((filiere: { nom_filiere: string }, idx: number) => (
+                  {programmes.map((filiere, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-2xl transition-colors">
                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                      <span className="text-xs font-bold text-slate-700">{filiere.nom_filiere}</span>
+                      <span className="text-xs font-bold text-slate-700">{filiere.nomProgramme ?? filiere.nom_filiere}</span>
                     </div>
                   ))}
                 </div>
@@ -165,13 +186,13 @@ export default function EesCard({ data, onEdit }: EesProps) {
           <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100/50">
             <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
             <span className="text-xs font-black text-emerald-700 uppercase tracking-tighter">
-              {data._count?.concours || 0} Concours
+              {countConcours} Concours
             </span>
           </div>
         </div>
 
         <Link
-          href={`/gestionnaireconcours/${data.id}?nom_ees=${encodeURIComponent(data.nom_ees)}&tutelle_id=${data.tutelle_id}`}
+          href={`/gestionnaireconcours/${data.id}?nom_ees=${encodeURIComponent(nomEes)}&tutelle_id=${tutelleId}`}
           className="group/btn block w-full"
         >
           <div className="w-full py-5 bg-indigo-600 text-white font-black text-sm rounded-[1.8rem] transition-all duration-300 flex justify-center items-center gap-3 group-hover/btn:bg-indigo-700 shadow-xl shadow-indigo-100 active:scale-95">

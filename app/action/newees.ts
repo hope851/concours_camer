@@ -3,6 +3,41 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { GetCurrentUser } from "./user";
+import { randomUUID } from "crypto";
+
+interface ProgrammeInput {
+  id?: string;
+  nomProgramme: string;
+  specialite?: string;
+  niveau: string;
+}
+
+async function resolveVilleId(villeIdInput?: string, nomVilleInput?: string, paysIdInput?: string) {
+  if (villeIdInput) {
+    const existing = await prisma.ville.findUnique({ where: { id: villeIdInput } });
+    if (existing) return existing.id;
+  }
+
+  const cityName = (nomVilleInput || "Yaoundé").trim();
+
+  let targetPaysId = paysIdInput;
+  if (!targetPaysId) {
+    const cameroun = await prisma.pays.upsert({
+      where: { nomPays: "Cameroun" },
+      create: { id: randomUUID(), nomPays: "Cameroun", region: "Afrique Centrale" },
+      update: {},
+    });
+    targetPaysId = cameroun.id;
+  }
+
+  const ville = await prisma.ville.upsert({
+    where: { nomVille_paysId: { nomVille: cityName, paysId: targetPaysId } },
+    create: { id: randomUUID(), nomVille: cityName, paysId: targetPaysId },
+    update: {},
+  });
+
+  return ville.id;
+}
 
 /**
  * AJOUTER UNE EES
@@ -13,41 +48,71 @@ export async function AddEes(formData: FormData) {
 
   try {
     const user = await GetCurrentUser();
-    if (!user || user.role !== "ADMIN") {
-      return { error: "Seuls les administrateurs peuvent créer un établissement." };
+    if (!user || (user.role !== "ADMIN" && user.role !== "GESTIONAIRE")) {
+      return { error: "Seuls les administrateurs et gestionnaires peuvent créer un établissement." };
     }
 
-    const nom_ees = formData.get("nom_ees") as string;
-    const ees_bio = (formData.get("ees_bio") as string) || "";
-    const ville = formData.get("ville") as string;
-    const site_ees = (formData.get("site_ees") as string) || "";
+    const nomEes = formData.get("nom_ees") as string;
+    const eesBio = (formData.get("ees_bio") as string) || "";
+    const siteEes = (formData.get("site_ees") as string) || "";
     const domaine = formData.get("domaine") as string;
-    const ees_type = formData.get("ees_type") as string;
-    const tutelle_id = formData.get("tutelle_id") as string; // Unified naming
+    const eesType = formData.get("ees_type") as string;
+    const tutelleId = formData.get("tutelle_id") as string;
+    const villeIdInput = formData.get("ville_id") as string;
+    const villeNameInput = formData.get("ville") as string;
+    const paysIdInput = formData.get("pays_id") as string;
 
+    const latitudeRaw = formData.get("posGeoLatitude") as string;
+    const longitudeRaw = formData.get("posGeoLongitude") as string;
+    const posGeoLatitude = latitudeRaw ? parseFloat(latitudeRaw) : null;
+    const posGeoLongitude = longitudeRaw ? parseFloat(longitudeRaw) : null;
+
+    // Structured programmes
+    const programmesJson = formData.get("programmes_json") as string;
     const filieresRaw = formData.get("filieres") as string;
-    const filieresArray = filieresRaw
-      ? filieresRaw.split(",").map((f) => f.trim()).filter(Boolean)
-      : [];
 
-    if (!nom_ees || !ville || !domaine || !ees_type || !tutelle_id) {
-      return { error: "Champs obligatoires manquants." };
+    let programmesArray: ProgrammeInput[] = [];
+    if (programmesJson) {
+      try {
+        programmesArray = JSON.parse(programmesJson);
+      } catch (e) {
+        console.warn("Invalid programmes_json", e);
+      }
+    } else if (filieresRaw) {
+      programmesArray = filieresRaw
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean)
+        .map((nom) => ({ nomProgramme: nom, niveau: "Licence" }));
     }
 
-    targetId = tutelle_id;
+    if (!nomEes || (!villeIdInput && !villeNameInput) || !domaine || !eesType || !tutelleId) {
+      return { error: "Champs obligatoires manquants (Nom, Ville, Domaine, Type ou Tutelle)." };
+    }
+
+    const villeId = await resolveVilleId(villeIdInput, villeNameInput, paysIdInput);
+    targetId = tutelleId;
 
     await prisma.$transaction(async (tx) => {
-      await tx.eES.create({
+      await tx.ees.create({
         data: {
-          nom_ees,
-          ees_bio,
-          ville,
-          site_ees,
-          domaine,
-          ees_type: ees_type as any,
-          tutelle: { connect: { id: tutelle_id } },
-          filieres: {
-            create: filieresArray.map((nom) => ({ nom_filiere: nom })),
+          id: randomUUID(),
+          nomEes: nomEes.trim(),
+          eesBio: eesBio.trim() || null,
+          siteEes: siteEes.trim() || null,
+          domaine: domaine.trim(),
+          eesType: eesType.trim(),
+          posGeoLatitude,
+          posGeoLongitude,
+          ville: { connect: { id: villeId } },
+          tutelleInstitutionelle: { connect: { id: tutelleId } },
+          programme: {
+            create: programmesArray.map((p) => ({
+              id: randomUUID(),
+              nomProgramme: p.nomProgramme.trim(),
+              specialite: p.specialite?.trim() || null,
+              niveau: p.niveau?.trim() || "Licence",
+            })),
           },
         },
       });
@@ -55,18 +120,18 @@ export async function AddEes(formData: FormData) {
 
     const tutelle = await prisma.tutelleInstitutionelle.findUnique({
       where: { id: targetId },
-      select: { nom_tutelle: true },
+      select: { nomTutelle: true },
     });
-    nomTutelle = tutelle?.nom_tutelle || "Tutelle";
+    nomTutelle = tutelle?.nomTutelle || "Tutelle";
 
     revalidatePath(`/gestionnaireees/${targetId}`);
+    revalidatePath("/explore");
   } catch (error: any) {
-    if (error.code === "P2002") return { error: "Une filière avec ce nom existe déjà." };
-    console.error(error);
+    if (error.code === "P2002") return { error: "Un programme avec ce nom et niveau existe déjà dans cet établissement." };
+    console.error("AddEes error:", error);
     return { error: `Erreur serveur: ${error.message}` };
   }
 
-  // Redirection hors du try/catch
   redirect(`/gestionnaireees/${targetId}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
 }
 
@@ -79,36 +144,65 @@ export async function UpdateEes(formData: FormData) {
 
   try {
     const id = formData.get("id") as string;
-    const nom_ees = formData.get("nom_ees") as string;
-    const ees_bio = (formData.get("ees_bio") as string) || "";
-    const ville = formData.get("ville") as string;
-    const site_ees = (formData.get("site_ees") as string) || "";
+    const nomEes = formData.get("nom_ees") as string;
+    const eesBio = (formData.get("ees_bio") as string) || "";
+    const siteEes = (formData.get("site_ees") as string) || "";
     const domaine = formData.get("domaine") as string;
-    const ees_type = formData.get("ees_type") as string;
+    const eesType = formData.get("ees_type") as string;
     const tutelleId = formData.get("tutelle_id") as string;
+    const villeIdInput = formData.get("ville_id") as string;
+    const villeNameInput = formData.get("ville") as string;
+    const paysIdInput = formData.get("pays_id") as string;
 
-    if (!id || !nom_ees || !tutelleId) return { error: "Données manquantes." };
+    const latitudeRaw = formData.get("posGeoLatitude") as string;
+    const longitudeRaw = formData.get("posGeoLongitude") as string;
+    const posGeoLatitude = latitudeRaw ? parseFloat(latitudeRaw) : null;
+    const posGeoLongitude = longitudeRaw ? parseFloat(longitudeRaw) : null;
+
+    if (!id || !nomEes || !tutelleId) return { error: "Données manquantes." };
 
     targetId = tutelleId;
+    const resolvedVilleId = await resolveVilleId(villeIdInput, villeNameInput, paysIdInput);
 
+    const programmesJson = formData.get("programmes_json") as string;
     const filieresRaw = formData.get("filieres") as string;
-    const filieresArray = filieresRaw
-      ? filieresRaw.split(",").map((f) => f.trim()).filter(Boolean)
-      : [];
+
+    let programmesArray: ProgrammeInput[] = [];
+    if (programmesJson) {
+      try {
+        programmesArray = JSON.parse(programmesJson);
+      } catch (e) {
+        console.warn("Invalid programmes_json", e);
+      }
+    } else if (filieresRaw) {
+      programmesArray = filieresRaw
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean)
+        .map((nom) => ({ nomProgramme: nom, niveau: "Licence" }));
+    }
 
     await prisma.$transaction(async (tx) => {
-      await tx.eES.update({
+      await tx.ees.update({
         where: { id },
         data: {
-          nom_ees,
-          ees_bio,
-          ville,
-          site_ees,
-          domaine,
-          ees_type: ees_type as any,
-          filieres: {
+          nomEes: nomEes.trim(),
+          eesBio: eesBio.trim() || null,
+          siteEes: siteEes.trim() || null,
+          domaine: domaine.trim(),
+          eesType: eesType.trim(),
+          posGeoLatitude,
+          posGeoLongitude,
+          ville: { connect: { id: resolvedVilleId } },
+          tutelleInstitutionelle: { connect: { id: tutelleId } },
+          programme: {
             deleteMany: {},
-            create: filieresArray.map((nom) => ({ nom_filiere: nom })),
+            create: programmesArray.map((p) => ({
+              id: randomUUID(),
+              nomProgramme: p.nomProgramme.trim(),
+              specialite: p.specialite?.trim() || null,
+              niveau: p.niveau?.trim() || "Licence",
+            })),
           },
         },
       });
@@ -116,13 +210,15 @@ export async function UpdateEes(formData: FormData) {
 
     const tutelle = await prisma.tutelleInstitutionelle.findUnique({
       where: { id: targetId },
-      select: { nom_tutelle: true },
+      select: { nomTutelle: true },
     });
-    nomTutelle = tutelle?.nom_tutelle || "Tutelle";
+    nomTutelle = tutelle?.nomTutelle || "Tutelle";
 
     revalidatePath(`/gestionnaireees/${targetId}`);
+    revalidatePath(`/explore/${id}`);
+    revalidatePath("/explore");
   } catch (error: any) {
-    console.error(error);
+    console.error("UpdateEes error:", error);
     return { error: "Erreur lors de la mise à jour." };
   }
 
@@ -135,24 +231,22 @@ export async function UpdateEes(formData: FormData) {
 export async function DeleteEes(id: string, tutelle_id: string) {
   let nomTutelle = "";
   try {
-    // 1. Récupérer le nom de la tutelle AVANT la suppression pour la redirection
     const tutelle = await prisma.tutelleInstitutionelle.findUnique({
       where: { id: tutelle_id },
-      select: { nom_tutelle: true }
+      select: { nomTutelle: true }
     });
-    nomTutelle = tutelle?.nom_tutelle || "Tutelle";
+    nomTutelle = tutelle?.nomTutelle || "Tutelle";
 
-    // 2. Suppression
-    await prisma.eES.delete({
+    await prisma.ees.delete({
       where: { id },
     });
 
     revalidatePath(`/gestionnaireees/${tutelle_id}`);
+    revalidatePath("/explore");
   } catch (error: any) {
     console.error("Erreur de suppression:", error);
     return { error: "Impossible de supprimer cet établissement." };
   }
 
-  // 3. Redirection
   redirect(`/gestionnaireees/${tutelle_id}?nom_tutelle=${encodeURIComponent(nomTutelle)}`);
 }

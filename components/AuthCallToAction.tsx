@@ -39,7 +39,7 @@ export default function AuthCallToAction() {
                     <h2 className="text-3xl font-bold text-white mb-4">Bienvenue {user.nom.split(' ')[0]}!</h2>
                     <p className="text-slate-300 mb-8">Vous avez accès à toutes les fonctionnalités de Concours-Camer.</p>
                     <Link
-                        href="/utilisateur/profile"
+                        href="/profile"
                         className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition"
                     >
                         Mon Profil

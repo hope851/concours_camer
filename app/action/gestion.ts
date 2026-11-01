@@ -19,9 +19,9 @@ export async function GetMyConcours() {
     const eesId = await getManagedEes();
     if (!eesId) return [];
 
-    return await prisma.concours.findMany({
-        where: { ees_id: eesId },
-        orderBy: { date_ouverture: 'desc' }
+    return await prisma.sessionAdmission.findMany({
+        where: { eesId },
+        orderBy: { dateOuverture: 'desc' }
     });
 }
 
@@ -29,8 +29,8 @@ export async function ToggleConcoursStatus(id: string, currentEtat: boolean) {
     const eesId = await getManagedEes();
     if (!eesId) return { error: "Non autorisé" };
 
-    await prisma.concours.update({
-        where: { id, ees_id: eesId },
+    await prisma.sessionAdmission.update({
+        where: { id, eesId },
         data: { etat: !currentEtat }
     });
     revalidatePath("/profile/gestion");
@@ -42,9 +42,9 @@ export async function GetMyFilieres() {
     const eesId = await getManagedEes();
     if (!eesId) return [];
 
-    return await prisma.filiere.findMany({
-        where: { ees_id: eesId },
-        orderBy: { nom_filiere: 'asc' }
+    return await prisma.programme.findMany({
+        where: { eesId },
+        orderBy: { nomProgramme: 'asc' }
     });
 }
 
@@ -52,8 +52,8 @@ export async function DeleteFiliere(id: string) {
     const eesId = await getManagedEes();
     if (!eesId) return { error: "Non autorisé" };
 
-    await prisma.filiere.delete({
-        where: { id, ees_id: eesId }
+    await prisma.programme.delete({
+        where: { id, eesId }
     });
     revalidatePath("/profile/gestion");
 }

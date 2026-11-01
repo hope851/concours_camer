@@ -7,19 +7,29 @@ import { DeleteConcours } from "@/app/action/newconcours";
 interface ConcoursProps {
   data: {
     id: string;
-    nom_concours: string;
+    nomConcours?: string;
+    nom_concours?: string;
     etat: boolean;
+    concoursBio?: string | null;
     concours_bio?: string | null;
-    diplome_requis: string;
+    diplomeRequis?: string;
+    diplome_requis?: string;
+    adressExam?: string | null;
     adress_exam?: string | null;
-    date_ouverture: Date | string;
-    limite_depot: Date | string;
-    date_exam: Date | string;
-    ees_id: string;
+    dateOuverture?: Date | string;
+    date_ouverture?: Date | string;
+    limiteDepot?: Date | string;
+    limite_depot?: Date | string;
+    dateExamEcrit?: Date | string | null;
+    date_exam_ecrit?: Date | string | null;
+    eesId?: string;
+    ees_id?: string;
     ees: {
-      nom_ees: string;
-      ville: string;
-      ees_type: string;
+      nomEes?: string;
+      nom_ees?: string;
+      ville: string | { nomVille: string };
+      eesType?: string;
+      ees_type?: string;
     };
   };
 }
@@ -30,29 +40,37 @@ export default function ConcoursCard({ data }: ConcoursProps) {
 
   useEffect(() => setMounted(true), []);
 
+  const nomConcours = data.nomConcours ?? data.nom_concours ?? "";
+  const concoursBio = data.concoursBio ?? data.concours_bio;
+  const diplomeRequis = data.diplomeRequis ?? data.diplome_requis ?? "";
+  const adressExam = data.adressExam ?? data.adress_exam;
+  const rawLimiteDepot = data.limiteDepot ?? data.limite_depot ?? new Date();
+  const rawDateExam = data.dateExamEcrit ?? data.date_exam_ecrit ?? new Date();
+  const eesId = data.eesId ?? data.ees_id ?? "";
+  const nomEes = data.ees.nomEes ?? data.ees.nom_ees ?? "";
+  const eesType = data.ees.eesType ?? data.ees.ees_type ?? "";
+  const villeName = typeof data.ees.ville === "object" ? data.ees.ville.nomVille : data.ees.ville;
+
   const now = new Date();
-  const dateLimite = new Date(data.limite_depot);
-  const dateExam = new Date(data.date_exam);
+  const dateLimite = new Date(rawLimiteDepot);
+  const dateExamVal = new Date(rawDateExam);
   const isDepotTermine = now > dateLimite;
-  const isExamTermine = now > dateExam;
+  const isExamTermine = now > dateExamVal;
 
   const formatDate = (date: Date | string) =>
     new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(date));
 
   const handleDelete = async () => {
-    if (window.confirm(`⚠️ Attention : Voulez-vous vraiment supprimer le concours "${data.nom_concours}" ?`)) {
+    if (window.confirm(`⚠️ Attention : Voulez-vous vraiment supprimer le concours "${nomConcours}" ?`)) {
       setIsDeleting(true);
       try {
-        const result = await DeleteConcours(data.id, data.ees_id);
+        const result = await DeleteConcours(data.id, eesId);
 
-        // MODIFICATION ICI : Vérifiez strictement la présence d'une erreur
         if (result?.error) {
           alert(result.error);
           setIsDeleting(false);
         }
-        // Si pas d'erreur, on ne fait rien, la redirection Next.js va s'occuper du reste
       } catch (error) {
-        // On ne met pas d'alerte ici car la redirection lève une exception côté client aussi
         console.log("Navigation après suppression...");
       }
     }
@@ -81,29 +99,29 @@ export default function ConcoursCard({ data }: ConcoursProps) {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] px-3 py-1 bg-white border border-slate-200 text-slate-500 rounded-lg font-black uppercase shadow-sm">
-              {data.ees.ees_type}
+              {eesType}
             </span>
             <div className="flex items-center text-slate-400 text-[11px] font-bold uppercase tracking-tight">
               <MapPin className="h-3.5 w-3.5 mr-1 text-rose-500" />
-              {data.ees.ville}
+              {villeName}
             </div>
           </div>
 
           <h3 className="text-2xl font-black leading-tight text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
-            {data.nom_concours}
+            {nomConcours}
           </h3>
-          <p className="text-indigo-500 text-xs font-black uppercase tracking-widest opacity-80">{data.ees.nom_ees}</p>
+          <p className="text-indigo-500 text-xs font-black uppercase tracking-widest opacity-80">{nomEes}</p>
         </div>
 
         {/* Bio/Description Box */}
-        {data.concours_bio && (
+        {concoursBio && (
           <div className="mb-6 p-5 bg-indigo-50/30 rounded-[1.8rem] border-l-4 border-indigo-500 relative overflow-hidden">
             <div className="flex items-center gap-2 mb-2 text-indigo-600">
               <BookOpen className="h-4 w-4" />
               <span className="text-[10px] font-black uppercase tracking-widest">Aperçu du concours</span>
             </div>
             <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 italic relative z-10">
-              &quot;{data.concours_bio}&quot;
+              &quot;{concoursBio}&quot;
             </p>
           </div>
         )}
@@ -116,7 +134,7 @@ export default function ConcoursCard({ data }: ConcoursProps) {
             </div>
             <div>
               <p className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">Niveau / Diplôme</p>
-              <p className="text-sm font-bold text-slate-800 leading-none mt-0.5">{data.diplome_requis}</p>
+              <p className="text-sm font-bold text-slate-800 leading-none mt-0.5">{diplomeRequis}</p>
             </div>
           </div>
 
@@ -124,23 +142,23 @@ export default function ConcoursCard({ data }: ConcoursProps) {
             <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-100/50">
               <p className="text-[9px] text-rose-500 font-black uppercase mb-1">Clôture Dépôt</p>
               <p className="text-[11px] font-black text-slate-700 flex items-center gap-1">
-                <Clock className="h-3 w-3" /> {formatDate(data.limite_depot)}
+                <Clock className="h-3 w-3" /> {formatDate(rawLimiteDepot)}
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100/50">
               <p className="text-[9px] text-blue-500 font-black uppercase mb-1">Date Épreuve</p>
               <p className="text-[11px] font-black text-slate-700 flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> {formatDate(data.date_exam)}
+                <Calendar className="h-3 w-3" /> {formatDate(rawDateExam)}
               </p>
             </div>
           </div>
 
-          {data.adress_exam && (
+          {adressExam && (
             <div className="flex items-start gap-3 p-4 bg-emerald-50/40 rounded-2xl border border-emerald-100/50">
               <School className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
               <div>
                 <p className="text-[9px] text-emerald-600 font-black uppercase">Centre d&apos;examen</p>
-                <p className="text-[11px] font-bold text-slate-700 leading-tight">{data.adress_exam}</p>
+                <p className="text-[11px] font-bold text-slate-700 leading-tight">{adressExam}</p>
               </div>
             </div>
           )}
@@ -149,7 +167,7 @@ export default function ConcoursCard({ data }: ConcoursProps) {
         {/* Action Buttons Section */}
         <div className="mt-8 pt-6 border-t border-slate-100 flex gap-3">
           <Link
-            href={`/formupdateconcours?id=${data.id}&ees_id=${data.ees_id}&nom_ees=${encodeURIComponent(data.ees.nom_ees)}`}
+            href={`/formupdateconcours?id=${data.id}&ees_id=${eesId}&nom_ees=${encodeURIComponent(nomEes)}`}
             className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 shadow-xl shadow-slate-200 active:scale-95"
           >
             <Edit3 className="h-4 w-4" />
@@ -158,11 +176,9 @@ export default function ConcoursCard({ data }: ConcoursProps) {
 
           <button
             onClick={handleDelete}
-            disabled={isDeleting}
-            className="px-5 flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-2xl border border-rose-100 transition-all duration-300 active:scale-90"
-            title="Supprimer définitivement"
+            className="p-4 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-2xl transition-colors border border-rose-100 shadow-sm flex items-center justify-center"
           >
-            <Trash2 className="h-5 w-5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>

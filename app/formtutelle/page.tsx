@@ -1,7 +1,10 @@
+"use client";
+
 import { AddTutelle } from "../action/newtutelle";
+import { GetPays } from "../action/location";
 import { useFormStatus } from "react-dom";
-import { useRef, useState } from "react";
-import { Loader2, CheckCircle2, AlertCircle, Sparkles, Building2, MapPin, TextQuote, Plus } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Loader2, CheckCircle2, AlertCircle, Sparkles, Building2, MapPin, TextQuote, Plus, Globe } from "lucide-react";
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -9,7 +12,7 @@ function SubmitButton() {
         <button
             type="submit"
             disabled={pending}
-            className="w-full bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-800 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-indigo-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group"
+            className="w-full bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-slate-700 disabled:to-slate-800 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-indigo-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group cursor-pointer"
         >
             {pending ? (
                 <>
@@ -29,6 +32,11 @@ function SubmitButton() {
 export default function FormTutellePage() {
     const formRef = useRef<HTMLFormElement>(null);
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+    const [paysList, setPaysList] = useState<{ id: string; nomPays: string; region: string }[]>([]);
+
+    useEffect(() => {
+        GetPays().then(setPaysList);
+    }, []);
 
     async function handleClientAction(formData: FormData) {
         setStatus(null);
@@ -63,7 +71,7 @@ export default function FormTutellePage() {
                         </div>
                         <div className="relative">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-                                <Sparkles size={12} /> Gestion des Tutelles
+                                <Sparkles size={12} /> Gestion des Tutelles (Hiérarchie: Pays → Tutelle)
                             </div>
                             <h1 className="text-5xl font-black text-white tracking-tighter leading-none mb-4">
                                 Institution <span className="bg-linear-to-r from-indigo-400 via-purple-400 to-indigo-500 bg-clip-text text-transparent">Tutélaire</span>
@@ -90,7 +98,7 @@ export default function FormTutellePage() {
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1 transition-colors">
+                                <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
                                     Nom de l'institut tutélaire
                                 </label>
                                 <input
@@ -106,31 +114,65 @@ export default function FormTutellePage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="flex flex-col gap-3">
                                 <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
-                                    Tutelle Technique
+                                    Tutelle Technique (Optionnel)
                                 </label>
                                 <input
                                     type="text"
                                     name="nom_tutelle_tech"
-                                    placeholder="Nom technique (optionnel)"
+                                    placeholder="Nom technique"
                                     className="glass-input p-5 rounded-2xl w-full"
                                 />
                             </div>
 
                             <div className="flex flex-col gap-3">
                                 <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
-                                    Région ou Pays
+                                    Site Officiel (Optionnel)
                                 </label>
                                 <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
                                     <input
-                                        type="text"
-                                        name="region"
-                                        placeholder="ex: Centre, Cameroun"
-                                        required
+                                        type="url"
+                                        name="site_tutelle"
+                                        placeholder="https://minesup.gov.cm"
                                         className="glass-input p-5 pl-12 rounded-2xl w-full"
                                     />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Hierarchical Relational Linking: Pays */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="flex flex-col gap-3">
+                                <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
+                                    Pays de Rattachement
+                                </label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                    <select
+                                        name="pays_id"
+                                        className="glass-input p-5 pl-12 rounded-2xl w-full [&>option]:bg-slate-900 [&>option]:text-white"
+                                    >
+                                        <option value="">Sélectionner un pays existant</option>
+                                        {paysList.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.nomPays} ({p.region})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* <div className="flex flex-col gap-3">
+                                <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">
+                                    Ou Créer un Pays / Région
+                                </label>
+                                <input
+                                    type="text"
+                                    name="nom_pays"
+                                    placeholder="ex: Cameroun, Gabon..."
+                                    className="glass-input p-5 rounded-2xl w-full"
+                                />
+                            </div> */}
                         </div>
 
                         <div className="space-y-6">
@@ -163,5 +205,4 @@ export default function FormTutellePage() {
             </div>
         </div>
     );
-
 }

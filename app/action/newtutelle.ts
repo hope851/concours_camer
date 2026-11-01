@@ -2,6 +2,7 @@
 import prisma from "../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomUUID } from "crypto";
 
 /**
  * AJOUTER UNE TUTELLE
@@ -10,34 +11,51 @@ export async function AddTutelle(formData: FormData) {
   let isSuccess = false;
 
   try {
-    const nom_tutelle = formData.get("nom_tutelle") as string;
-    const nom_tutelle_tech = formData.get("nom_tutelle_tech") as string;
-    const region = formData.get("region") as string;
-    const tutelle_bio = formData.get("tutelle_bio") as string;
+    const nomTutelle = formData.get("nom_tutelle") as string;
+    const nomTutelleTech = formData.get("nom_tutelle_tech") as string;
+    const siteTutelle = formData.get("site_tutelle") as string;
+    const tutelleBio = formData.get("tutelle_bio") as string;
+    const paysIdInput = formData.get("pays_id") as string;
+    const regionInput = formData.get("region") as string;
+    const nomPaysInput = formData.get("nom_pays") as string;
 
-    if (!nom_tutelle || !region) {
-      return { error: "Le nom et la région sont obligatoires." };
+    if (!nomTutelle) {
+      return { error: "Le nom de la tutelle est obligatoire." };
     }
 
-    
+    let paysId = paysIdInput;
+
+    if (!paysId) {
+      const targetCountryName = (nomPaysInput || regionInput || "Cameroun").trim();
+      const targetRegion = (regionInput || "Afrique Centrale").trim();
+
+      const pays = await prisma.pays.upsert({
+        where: { nomPays: targetCountryName },
+        create: { id: randomUUID(), nomPays: targetCountryName, region: targetRegion },
+        update: {},
+      });
+      paysId = pays.id;
+    }
 
     await prisma.tutelleInstitutionelle.create({
       data: {
-        nom_tutelle,
-        nom_tutelle_tech,
-        region,
-        tutelle_bio,
+        id: randomUUID(),
+        nomTutelle: nomTutelle.trim(),
+        nomTutelleTech: nomTutelleTech?.trim() || null,
+        siteTutelle: siteTutelle?.trim() || null,
+        tutelleBio: tutelleBio?.trim() || null,
+        pays: { connect: { id: paysId } },
       },
     });
 
     revalidatePath("/gestionnairetutelle");
+    revalidatePath("/tutelles");
     isSuccess = true;
   } catch (error) {
     console.error("Erreur création tutelle:", error);
     return { error: "Une erreur technique est survenue lors de la création." };
   }
 
-  // Toujours rediriger HORS du try/catch
   if (isSuccess) {
     redirect("/gestionnairetutelle");
   }
@@ -51,26 +69,46 @@ export async function UpdateTutelle(formData: FormData) {
 
   try {
     const id = formData.get("id") as string;
-    const nom_tutelle = formData.get("nom_tutelle") as string;
-    const nom_tutelle_tech = formData.get("nom_tutelle_tech") as string;
-    const region = formData.get("region") as string;
-    const tutelle_bio = formData.get("tutelle_bio") as string;
+    const nomTutelle = formData.get("nom_tutelle") as string;
+    const nomTutelleTech = formData.get("nom_tutelle_tech") as string;
+    const siteTutelle = formData.get("site_tutelle") as string;
+    const tutelleBio = formData.get("tutelle_bio") as string;
+    const paysIdInput = formData.get("pays_id") as string;
+    const regionInput = formData.get("region") as string;
+    const nomPaysInput = formData.get("nom_pays") as string;
 
-    if (!id || !nom_tutelle || !region) {
-      return { error: "ID, Nom et Région sont requis pour la modification." };
+    if (!id || !nomTutelle) {
+      return { error: "ID et Nom sont requis pour la modification." };
+    }
+
+    let paysId = paysIdInput;
+
+    if (!paysId && (nomPaysInput || regionInput)) {
+      const targetCountryName = (nomPaysInput || regionInput || "Cameroun").trim();
+      const targetRegion = (regionInput || "Afrique Centrale").trim();
+
+      const pays = await prisma.pays.upsert({
+        where: { nomPays: targetCountryName },
+        create: { id: randomUUID(), nomPays: targetCountryName, region: targetRegion },
+        update: {},
+      });
+      paysId = pays.id;
     }
 
     await prisma.tutelleInstitutionelle.update({
       where: { id },
       data: {
-        nom_tutelle,
-        nom_tutelle_tech,
-        region,
-        tutelle_bio,
+        nomTutelle: nomTutelle.trim(),
+        nomTutelleTech: nomTutelleTech?.trim() || null,
+        siteTutelle: siteTutelle?.trim() || null,
+        tutelleBio: tutelleBio?.trim() || null,
+        ...(paysId ? { pays: { connect: { id: paysId } } } : {}),
       },
     });
 
     revalidatePath("/gestionnairetutelle");
+    revalidatePath("/tutelles");
+    revalidatePath(`/tutelles/${id}`);
     isSuccess = true;
   } catch (error) {
     console.error("Erreur mise à jour tutelle:", error);
@@ -87,19 +125,17 @@ export async function UpdateTutelle(formData: FormData) {
  */
 export async function DeleteTutelle(id: string) {
   try {
-    // Vérifier si la tutelle existe avant de supprimer
     await prisma.tutelleInstitutionelle.delete({
       where: { id },
     });
 
-    // Revalider le chemin pour mettre à jour la liste côté client
     revalidatePath("/gestionnairetutelle");
+    revalidatePath("/tutelles");
 
     return { success: true };
   } catch (error: any) {
     console.error("Erreur de suppression:", error);
 
-    // Gestion d'erreur si des EES sont encore liées (si onDelete: Cascade n'est pas mis)
     if (error.code === 'P2003') {
       return { error: "Suppression impossible : des établissements sont encore liés à cette tutelle." };
     }
@@ -109,15 +145,34 @@ export async function DeleteTutelle(id: string) {
 }
 
 /**
- * RÉCUPÉRER TOUTES LES TUTELLES
+ * RÉCUPÉRER TOUTES LES TUTELLES (AVEC PAYS)
  */
 export async function GetTutelles() {
   try {
     return await prisma.tutelleInstitutionelle.findMany({
-      orderBy: { nom_tutelle: 'asc' },
+      orderBy: { nomTutelle: 'asc' },
+      include: {
+        pays: true,
+        _count: { select: { ees: true } },
+      },
     });
   } catch (error) {
     console.error("Erreur GetTutelles:", error);
     return [];
+  }
+}
+
+export async function GetTutelleById(id: string) {
+  try {
+    return await prisma.tutelleInstitutionelle.findUnique({
+      where: { id },
+      include: {
+        pays: true,
+        ees: { include: { ville: true, _count: { select: { programme: true, sessionAdmission: true } } } },
+      },
+    });
+  } catch (error) {
+    console.error("Erreur GetTutelleById:", error);
+    return null;
   }
 }

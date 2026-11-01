@@ -17,8 +17,9 @@ export default async function Page({
 
     if (id) {
         try {
-            const concours = await prisma.concours.findUnique({ 
+            const concours = await prisma.sessionAdmission.findUnique({ 
                 where: { id },
+                include: { ees: true, programme: true },
             });
             if (concours) {
                 safeData = JSON.parse(JSON.stringify(concours));

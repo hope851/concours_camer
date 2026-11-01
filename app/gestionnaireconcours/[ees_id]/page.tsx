@@ -8,23 +8,23 @@ export default async function GestionConcoursPage({
   searchParams
 }: {
   params: Promise<{ ees_id: string }>
-  searchParams: Promise<{ nom_ees?: string, tutelle_id?: string }> // Ajout de tutelle_id si tu veux un retour précis
+  searchParams: Promise<{ nom_ees?: string, tutelle_id?: string }>
 }) {
   const { nom_ees, tutelle_id } = await searchParams;
   const { ees_id: tid } = await params;
 
-  const concours = await prisma.concours.findMany({
-    where: { ees_id: tid },
+  const concours = await prisma.sessionAdmission.findMany({
+    where: { eesId: tid },
     include: {
       ees: {
         select: {
-          nom_ees: true,
-          ville: true,
-          ees_type: true
+          nomEes: true,
+          eesType: true,
+          ville: { select: { nomVille: true } }
         }
       }
     },
-    orderBy: { date_exam: 'asc' }
+    orderBy: { dateExamEcrit: 'asc' }
   });
 
   const AddButton = ({ outline = false }: { outline?: boolean }) => (
@@ -36,7 +36,7 @@ export default async function GestionConcoursPage({
           }`}
       >
         <Plus className="h-5 w-5" />
-        Ajouter un concours
+        Ajouter une session
       </button>
     </Link>
   );
@@ -48,9 +48,9 @@ export default async function GestionConcoursPage({
           <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--color-secondary)' }}>
             <LayoutGrid className="h-10 w-10" style={{ color: 'var(--color-primary)' }} />
           </div>
-          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-foreground)' }}>Aucun concours</h2>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-foreground)' }}>Aucune Session d'Admission</h2>
           <p className="mb-8 leading-relaxed" style={{ color: 'var(--color-muted-foreground)' }}>
-            Il n'y a pas encore de concours enregistré pour <span className="font-bold" style={{ color: 'var(--color-foreground)' }}>{nom_ees}</span>.
+            Il n'y a pas encore de session d'admission enregistré pour <span className="font-bold" style={{ color: 'var(--color-foreground)' }}>{nom_ees}</span>.
           </p>
           <AddButton />
         </div>

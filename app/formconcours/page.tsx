@@ -1,16 +1,11 @@
 "use client";
-import { useFormStatus } from "react-dom";
-import { useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { AddConcours } from "../action/newconcours";
 
-
-// Séparation du formulaire pour utiliser useSearchParams proprement
 import { useFormStatus } from "react-dom";
-import { useRef, Suspense, useState } from "react";
+import { useRef, Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { AddConcours } from "../action/newconcours";
-import { Loader2, CheckCircle2, AlertCircle, Sparkles, Calendar, Clock, MapPin, TextQuote, Zap } from "lucide-react";
+import { AddConcours, GetProgrammesByEes } from "../action/newconcours";
+import { GetAllEes } from "../action/user";
+import { Loader2, CheckCircle2, AlertCircle, Sparkles, Calendar, Clock, MapPin, TextQuote, Zap, School } from "lucide-react";
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -18,7 +13,7 @@ function SubmitButton() {
         <button
             type="submit"
             disabled={pending}
-            className="w-full bg-linear-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:from-slate-700 disabled:to-slate-800 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-indigo-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group"
+            className="w-full bg-linear-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:from-slate-700 disabled:to-slate-800 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-indigo-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group cursor-pointer"
         >
             {pending ? (
                 <>
@@ -39,14 +34,32 @@ function FormFields() {
     const formRef = useRef<HTMLFormElement>(null);
     const searchParams = useSearchParams();
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-    const ees_id = searchParams.get("ees_id");
+
+    const ees_id_url = searchParams.get("ees_id");
+    const [selectedEesId, setSelectedEesId] = useState<string>(ees_id_url || "");
+    const [eesList, setEesList] = useState<{ id: string; nomEes: string }[]>([]);
+    const [programmes, setProgrammes] = useState<{ id: string; nomProgramme: string; niveau: string; specialite?: string | null }[]>([]);
+
+    useEffect(() => {
+        GetAllEes().then(setEesList);
+    }, []);
+
+    useEffect(() => {
+        if (!selectedEesId) {
+            setProgrammes([]);
+            return;
+        }
+        GetProgrammesByEes(selectedEesId).then(setProgrammes);
+    }, [selectedEesId]);
 
     async function handleClientAction(formData: FormData) {
         setStatus(null);
-        if (ees_id) {
-            formData.append("ees_id", ees_id);
+
+        const targetEesId = selectedEesId || ees_id_url;
+        if (targetEesId) {
+            formData.set("ees_id", targetEesId);
         } else {
-            setStatus({ type: 'error', message: "ID de l'EES manquant dans l'URL." });
+            setStatus({ type: 'error', message: "Veuillez sélectionner un établissement (EES)." });
             return;
         }
 
@@ -58,7 +71,8 @@ function FormFields() {
                 setStatus({ type: 'success', message: "Le concours a été configuré et activé avec succès !" });
                 formRef.current?.reset();
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message === "NEXT_REDIRECT") throw error;
             setStatus({ type: 'error', message: "Une erreur est survenue lors de l'enregistrement." });
         }
     }
@@ -72,13 +86,42 @@ function FormFields() {
                 </div>
             )}
 
-            {/* Section 1: Informations Générales */}
+            {/* Hierarchical Relational Link: EES */}
             <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-8">
                     <div className="w-1.5 h-8 bg-linear-to-b from-indigo-400 to-blue-400 rounded-full shadow-lg shadow-indigo-500/50" />
                     <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3">
-                        <Zap size={24} className="text-indigo-400" />
-                        Informations Générales
+                        <School size={24} className="text-indigo-400" />
+                        Établissement (Hiérarchie: EES → Session d'admission)
+                    </h2>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Sélectionner l'EES</label>
+                    <select
+                        name="ees_id"
+                        value={selectedEesId}
+                        onChange={(e) => setSelectedEesId(e.target.value)}
+                        required
+                        className="glass-input p-5 rounded-2xl w-full [&>option]:bg-slate-900 [&>option]:text-white"
+                    >
+                        <option value="">-- Choisir un établissement --</option>
+                        {eesList.map((e) => (
+                            <option key={e.id} value={e.id}>
+                                {e.nomEes}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Section 1: Informations Générales */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="w-1.5 h-8 bg-linear-to-b from-blue-400 to-cyan-400 rounded-full shadow-lg shadow-blue-500/50" />
+                    <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+                        <Zap size={24} className="text-cyan-400" />
+                        Détails du Concours
                     </h2>
                 </div>
 
@@ -92,11 +135,24 @@ function FormFields() {
                     />
                 </div>
 
+                {/* Hierarchical Relational Link: Programme */}
+                <div className="flex flex-col gap-3">
+                    <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Programme d'étude associé (Optionnel)</label>
+                    <select name="programme_id" className="glass-input p-5 rounded-2xl w-full [&>option]:bg-slate-900 [&>option]:text-white">
+                        <option value="">— Aucun programme spécifique (Concours Général) —</option>
+                        {programmes.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.nomProgramme} ({p.niveau}{p.specialite ? ` • ${p.specialite}` : ''})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="flex flex-col gap-3">
                     <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Diplôme Requis</label>
                     <input
                         name="diplome_requis"
-                        placeholder="ex: BAC, Licence, Master..."
+                        placeholder="ex: BAC C/D/E/TI, GCE A-Level, Licence..."
                         required
                         className="glass-input p-5 rounded-2xl w-full"
                     />
@@ -115,16 +171,20 @@ function FormFields() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-sm">
                     <div className="flex flex-col gap-3">
-                        <label className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">Ouverture</label>
+                        <label className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">Date Ouverture</label>
                         <input name="date_ouverture" type="datetime-local" required className="glass-input p-4 rounded-xl text-sm" />
                     </div>
                     <div className="flex flex-col gap-3">
-                        <label className="text-[10px] font-black text-purple-300 uppercase tracking-[0.2em]">Limite dépôt</label>
-                        <input name="limite_depot" type="datetime-local" required className="glass-input p-4 rounded-xl text-sm" />
+                        <label className="text-[10px] font-black text-purple-300 uppercase tracking-[0.2em]">Limite dépôt dossiers</label>
+                        <input name="limite_depot" type="datetime-local" className="glass-input p-4 rounded-xl text-sm" />
                     </div>
                     <div className="flex flex-col gap-3">
-                        <label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">Date Exam</label>
-                        <input name="date_exam" type="datetime-local" required className="glass-input p-4 rounded-xl text-sm" />
+                        <label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">Date de l'Examen ecrit</label>
+                        <input name="date_exam_ecrit" type="datetime-local" required className="glass-input p-4 rounded-xl text-sm" />
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">Date de l'Examen oral</label>
+                        <input name="date_exam_oral" type="datetime-local" required className="glass-input p-4 rounded-xl text-sm" />
                     </div>
                 </div>
             </div>
@@ -132,7 +192,7 @@ function FormFields() {
             <div className="flex flex-col gap-3">
                 <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1 flex items-center gap-2">
                     <MapPin size={18} className="text-rose-400" />
-                    Lieu d'examen
+                    Lieu / Adresse de l'examen
                 </label>
                 <input
                     name="adress_exam"
@@ -147,15 +207,15 @@ function FormFields() {
                     <div className="w-1.5 h-8 bg-linear-to-b from-cyan-400 to-blue-400 rounded-full shadow-lg shadow-cyan-500/50" />
                     <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3">
                         <TextQuote size={24} className="text-cyan-400" />
-                        Détails & Statut
+                        Présentation & Statut
                     </h2>
                 </div>
 
                 <div className="flex flex-col gap-3">
-                    <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Bio du Concours</label>
+                    <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Présentation / Bio du Concours</label>
                     <textarea
                         name="concours_bio"
-                        placeholder="Précisez les conditions, les matières à composer..."
+                        placeholder="Précisez les conditions, les épreuves et matières à composer..."
                         rows={4}
                         className="glass-input p-5 rounded-2xl w-full resize-none"
                     ></textarea>
@@ -173,7 +233,7 @@ function FormFields() {
                     </div>
                     <div>
                         <p className="font-black text-white text-sm uppercase tracking-wider">Activer le concours</p>
-                        <p className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">Visible par les étudiants dès l'enregistrement</p>
+                        <p className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">Rendre ce concours visible dans le calendrier et le répertoire</p>
                     </div>
                 </label>
             </div>
@@ -206,9 +266,9 @@ export default function FormConcoursPage() {
                         <div className="relative">
                             <span className="text-indigo-300 font-bold tracking-widest text-xs uppercase mb-2 block">Gestion des Concours</span>
                             <h1 className="text-4xl font-black text-white">
-                                Ajouter un <span className="bg-linear-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent">Concours</span>
+                                Ajouter une <span className="bg-linear-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent">Session d'Admission</span>
                             </h1>
-                            <p className="text-slate-300 mt-2 font-medium">Configurez les détails de la session d'examen</p>
+                            <p className="text-slate-300 mt-2 font-medium">Configurez les détails et dates d'examen d'un concours.</p>
                         </div>
                     </div>
 

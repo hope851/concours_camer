@@ -4,8 +4,11 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const tutelles = await prisma.tutelleInstitutionelle.findMany({
-      include: { _count: { select: { ees: true } } },
-      orderBy: { nom_tutelle: "asc" },
+      include: {
+        pays: { select: { nomPays: true, region: true } },
+        _count: { select: { ees: true } },
+      },
+      orderBy: { nomTutelle: "asc" },
     });
     return NextResponse.json(tutelles);
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GetCurrentUser, GetMyEES } from '@/app/action/user';
 import { GetMyConcours, ToggleConcoursStatus, GetMyFilieres, DeleteFiliere } from '@/app/action/gestion';
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
-export default function GestionnaireDashboard() {
+function GestionnaireContent() {
     const searchParams = useSearchParams();
     const nom_tutelle = searchParams.get('nom_tutelle') || "Ma Tutelle";
 
@@ -223,7 +223,7 @@ export default function GestionnaireDashboard() {
                                                     {ees.ees_type}
                                                 </span>
                                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Link href={`/formupdateees?id=${ees.id}&tutelle_id=${ees.tutelle_id}`} className="p-3 bg-white/5 hover:bg-indigo-600 rounded-xl transition-all">
+                                                    <Link href={`/formupdateees?id=${ees.id}&tutelle_id=${ees.tutelleId ?? ees.tutelle_id}`} className="p-3 bg-white/5 hover:bg-indigo-600 rounded-xl transition-all">
                                                         <Edit3 size={18} />
                                                     </Link>
                                                     <button className="p-3 bg-white/5 hover:bg-rose-600 rounded-xl transition-all">
@@ -231,7 +231,7 @@ export default function GestionnaireDashboard() {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <h3 className="text-2xl font-black text-white mb-2 leading-tight">{ees.nom_ees}</h3>
+                                            <h3 className="text-2xl font-black text-white mb-2 leading-tight">{ees.nomEes ?? ees.nom_ees}</h3>
                                             <div className="flex items-center gap-2 text-slate-500 mb-6 font-medium text-sm">
                                                 <MapPin size={14} className="text-indigo-500/50" />
                                                 {ees.ville}
@@ -240,18 +240,18 @@ export default function GestionnaireDashboard() {
                                             <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/5">
                                                 <div className="space-y-1">
                                                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Concours</p>
-                                                    <p className="text-xl font-bold text-white">{ees._count?.concours || 0}</p>
+                                                    <p className="text-xl font-bold text-white">{ees._count?.sessionAdmission ?? ees._count?.concours ?? 0}</p>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Filières</p>
-                                                    <p className="text-xl font-bold text-white">{ees._count?.filieres || 0}</p>
+                                                    <p className="text-xl font-bold text-white">{ees._count?.programme ?? ees._count?.filieres ?? 0}</p>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="mt-8 flex gap-3">
                                             <Link
-                                                href={`/gestionnaireconcours/${ees.id}?nom_ees=${encodeURIComponent(ees.nom_ees)}&tutelle_id=${ees.tutelle_id}`}
+                                                href={`/gestionnaireconcours/${ees.id}?nom_ees=${encodeURIComponent(ees.nomEes ?? ees.nom_ees ?? '')}&tutelle_id=${ees.tutelleId ?? ees.tutelle_id}`}
                                                 className="flex-1 bg-white/5 hover:bg-white/10 text-white text-center py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group-hover:border-indigo-500/20 border border-transparent"
                                             >
                                                 Gérer les Concours <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -285,13 +285,15 @@ export default function GestionnaireDashboard() {
                                         {concoursList.map((c) => (
                                             <tr key={c.id} className="group hover:bg-white/2 transition-all">
                                                 <td className="px-8 py-6">
-                                                    <p className="font-bold text-white mb-1">{c.nom_concours}</p>
-                                                    <p className="text-xs text-slate-500">{c.diplome_requis}</p>
+                                                    <p className="font-bold text-white mb-1">{c.nomConcours ?? c.nom_concours}</p>
+                                                    <p className="text-xs text-slate-500">{c.diplomeRequis ?? c.diplome_requis}</p>
                                                 </td>
                                                 <td className="px-8 py-6">
                                                     <div className="flex items-center gap-2 text-sm text-slate-300">
                                                         <Calendar size={14} className="text-purple-500" />
-                                                        {new Date(c.date_exam).toLocaleDateString('fr-FR')}
+                                                        {c.dateExamEcrit
+                                                            ? new Date(c.dateExamEcrit).toLocaleDateString('fr-FR')
+                                                            : 'À confirmer'}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
@@ -372,5 +374,20 @@ export default function GestionnaireDashboard() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function GestionnaireDashboard() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="animate-spin text-purple-500" size={48} />
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Chargement...</p>
+                </div>
+            </div>
+        }>
+            <GestionnaireContent />
+        </Suspense>
     );
 }

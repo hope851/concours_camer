@@ -1,20 +1,21 @@
 import prisma from "@/lib/prisma";
-import { Calendar, Clock, MapPin, BookOpen, ArrowRight } from "lucide-react";
+import { BookOpen, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
 export default async function ConcoursPage() {
-  const concours = await prisma.concours.findMany({
+  const concours = await prisma.sessionAdmission.findMany({
     where: { etat: true },
     include: {
       ees: {
-        include: { tutelle: true },
+        include: { tutelleInstitutionelle: true },
       },
     },
-    orderBy: { limite_depot: "asc" },
+    orderBy: { limiteDepot: "asc" },
   });
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return "À confirmer";
     return new Intl.DateTimeFormat("fr-FR", {
       day: "2-digit",
       month: "long",
@@ -23,8 +24,8 @@ export default async function ConcoursPage() {
   };
 
   const now = new Date();
-  const activeCount = concours.filter(c => new Date(c.limite_depot) > now).length;
-  const closedCount = concours.filter(c => new Date(c.limite_depot) <= now).length;
+  const activeCount = concours.filter(c => new Date(c.limiteDepot) > now).length;
+  const closedCount = concours.filter(c => new Date(c.limiteDepot) <= now).length;
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-indigo-900 to-slate-900">
@@ -57,9 +58,9 @@ export default async function ConcoursPage() {
         {concours.length > 0 ? (
           <div className="space-y-6">
             {concours.map((c) => {
-              const isClosing = new Date(c.limite_depot) < now;
+              const isClosing = new Date(c.limiteDepot) < now;
               const daysLeft = Math.ceil(
-                (new Date(c.limite_depot).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+                (new Date(c.limiteDepot).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
               );
 
               return (
@@ -73,7 +74,7 @@ export default async function ConcoursPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
                         <span className="px-3 py-1 rounded-full bg-indigo-600/30 border border-indigo-400/30 text-indigo-300 text-xs font-bold">
-                          {c.ees.ees_type}
+                          {c.ees.eesType}
                         </span>
                         {isClosing ? (
                           <span className="px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-bold animate-pulse">
@@ -87,27 +88,28 @@ export default async function ConcoursPage() {
                       </div>
 
                       <h3 className="text-2xl font-black text-white mb-2 group-hover:text-indigo-300 transition">
-                        {c.nom_concours}
+                        {c.nomConcours}
                       </h3>
 
-                      <p className="text-slate-300 mb-4">{c.ees.nom_ees}</p>
+                      <p className="text-slate-300 mb-4">{c.ees.nomEes}</p>
 
-                      {c.concours_bio && (
-                        <p className="text-slate-400 text-sm mb-4 line-clamp-2">{c.concours_bio}</p>
+                      {c.concoursBio && (
+                        <p className="text-slate-400 text-sm mb-4 line-clamp-2">{c.concoursBio}</p>
                       )}
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <p className="text-slate-500 text-xs font-semibold mb-1">NIVEAU</p>
-                          <p className="text-white font-bold text-sm">{c.diplome_requis}</p>
+                          <p className="text-white font-bold text-sm">{c.diplomeRequis}</p>
                         </div>
                         <div>
                           <p className="text-slate-500 text-xs font-semibold mb-1">CLÔTURE</p>
-                          <p className="text-white font-bold text-sm">{formatDate(c.limite_depot)}</p>
+                          <p className="text-white font-bold text-sm">{formatDate(c.limiteDepot)}</p>
                         </div>
                         <div>
-                          <p className="text-slate-500 text-xs font-semibold mb-1">EXAMEN</p>
-                          <p className="text-white font-bold text-sm">{formatDate(c.date_exam)}</p>
+                          <p className="text-slate-500 text-xs font-semibold mb-1">EXAMENS</p>
+                          <p className="text-white font-bold text-sm">Écrit : {formatDate(c.dateExamEcrit)}</p>
+                          <p className="text-white font-bold text-sm">Oral : {formatDate(c.dateExamOral)}</p>
                         </div>
                         {!isClosing && (
                           <div>
@@ -122,8 +124,8 @@ export default async function ConcoursPage() {
                     <div className="flex flex-col items-end gap-4">
                       <div className="text-right">
                         <p className="text-slate-400 text-xs font-semibold">LIEU EXAMEN</p>
-                        {c.adress_exam ? (
-                          <p className="text-white font-semibold text-sm line-clamp-2 max-w-xs">{c.adress_exam}</p>
+                        {c.adressExam ? (
+                          <p className="text-white font-semibold text-sm line-clamp-2 max-w-xs">{c.adressExam}</p>
                         ) : (
                           <p className="text-slate-500 text-sm">À confirmer</p>
                         )}

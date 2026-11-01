@@ -1,43 +1,60 @@
 "use client";
-import { useRef } from "react";
+
+import { useRef, Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { UpdateConcours } from "../action/newconcours";
+import { UpdateConcours, GetProgrammesByEes } from "../action/newconcours";
 import { Sparkles, MapPin, BookOpen, CheckCircle2 } from "lucide-react";
 
 interface ConcoursProps {
     data: {
         id: string;
-        nom_concours: string;
+        nom_concours?: string;
+        nomConcours?: string;
         etat: boolean;
         concours_bio?: string | null;
-        diplome_requis: string;
+        concoursBio?: string | null;
+        diplome_requis?: string;
+        diplomeRequis?: string;
         adress_exam?: string | null;
-        date_ouverture: Date | string;
-        limite_depot: Date | string;
-        date_exam: Date | string;
-        ees: {
-            nom_ees: string;
-            ville: string;
-            ees_type: string;
+        adressExam?: string | null;
+        date_ouverture?: Date | string;
+        dateOuverture?: Date | string;
+        limite_depot?: Date | string;
+        limiteDepot?: Date | string;
+        date_exam_ecrit?: Date | string | null;
+        dateExamEcrit?: Date | string | null;
+        date_exam_oral?: Date | string | null;
+        dateExamOral?: Date | string | null;
+        eesId?: string;
+        programmeId?: string | null;
+        ees?: {
+            id?: string;
+            nomEes?: string;
+            nom_ees?: string;
         };
     };
 }
 
-// Fonction utilitaire pour formater les dates pour l'input datetime-local
-const formatDateForInput = (date: Date | string | undefined) => {
+const formatDateForInput = (date: Date | string | null | undefined) => {
     if (!date) return "";
     const d = new Date(date);
-    // Format requis : YYYY-MM-DDTHH:mm
+    if (isNaN(d.getTime())) return "";
     return d.toISOString().slice(0, 16);
 };
 
-export default function FormFields({ data }: ConcoursProps) {
+function FormFieldsContent({ data }: ConcoursProps) {
     const formRef = useRef<HTMLFormElement>(null);
     const searchParams = useSearchParams();
 
-    // Récupération des IDs dans l'URL
-    const ees_id = searchParams.get("ees_id");
+    const ees_id = searchParams.get("ees_id") || data?.eesId || data?.ees?.id;
     const id = searchParams.get("id") || data?.id;
+
+    const [programmes, setProgrammes] = useState<{ id: string; nomProgramme: string; niveau: string }[]>([]);
+
+    useEffect(() => {
+        if (!ees_id) return;
+        GetProgrammesByEes(ees_id).then(setProgrammes);
+    }, [ees_id]);
 
     async function handleClientAction(formData: FormData) {
         if (!ees_id || !id) {
@@ -45,11 +62,9 @@ export default function FormFields({ data }: ConcoursProps) {
             return;
         }
 
-        // Injection manuelle des IDs nécessaires pour la Server Action
         formData.append("ees_id", ees_id);
         formData.append("id", id);
 
-        // Gestion du booléen de la checkbox (on si coché, sinon null)
         const isChecked = formData.get("etat") === "on";
         formData.set("etat", String(isChecked));
 
@@ -85,7 +100,7 @@ export default function FormFields({ data }: ConcoursProps) {
                             <h1 className="text-5xl font-black text-white tracking-tighter leading-none mb-4">
                                 Modifier le <span className="bg-linear-to-r from-indigo-400 via-blue-400 to-indigo-500 bg-clip-text text-transparent">Concours</span>
                             </h1>
-                            <p className="text-slate-400 text-lg font-medium">Mise à jour pour : <span className="text-indigo-300 font-bold">{data?.ees?.nom_ees}</span></p>
+                            <p className="text-slate-400 text-lg font-medium">Mise à jour pour : <span className="text-indigo-300 font-bold">{data?.ees?.nomEes ?? data?.ees?.nom_ees}</span></p>
                         </div>
                     </div>
 
@@ -106,17 +121,33 @@ export default function FormFields({ data }: ConcoursProps) {
                                     <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Intitulé du Concours</label>
                                     <input
                                         name="nom_concours"
-                                        defaultValue={data?.nom_concours}
+                                        defaultValue={data?.nomConcours ?? data?.nom_concours}
                                         required
                                         className="glass-input p-5 rounded-2xl w-full"
                                     />
                                 </div>
 
                                 <div className="flex flex-col gap-3 md:col-span-2">
+                                    <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Programme d'étude associé (Optionnel)</label>
+                                    <select
+                                        name="programme_id"
+                                        defaultValue={data?.programmeId ?? ""}
+                                        className="glass-input p-5 rounded-2xl w-full [&>option]:bg-slate-900 [&>option]:text-white"
+                                    >
+                                        <option value="">— Aucun programme spécifique —</option>
+                                        {programmes.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.nomProgramme} ({p.niveau})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col gap-3 md:col-span-2">
                                     <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Diplôme Requis</label>
                                     <input
                                         name="diplome_requis"
-                                        defaultValue={data?.diplome_requis}
+                                        defaultValue={data?.diplomeRequis ?? data?.diplome_requis}
                                         required
                                         className="glass-input p-5 rounded-2xl w-full"
                                     />
@@ -140,7 +171,7 @@ export default function FormFields({ data }: ConcoursProps) {
                                     <input
                                         name="date_ouverture"
                                         type="datetime-local"
-                                        defaultValue={formatDateForInput(data?.date_ouverture)}
+                                        defaultValue={formatDateForInput(data?.dateOuverture ?? data?.date_ouverture)}
                                         required
                                         className="glass-input p-4 rounded-xl text-sm"
                                     />
@@ -150,17 +181,27 @@ export default function FormFields({ data }: ConcoursProps) {
                                     <input
                                         name="limite_depot"
                                         type="datetime-local"
-                                        defaultValue={formatDateForInput(data?.limite_depot)}
+                                        defaultValue={formatDateForInput(data?.limiteDepot ?? data?.limite_depot)}
                                         required
                                         className="glass-input p-4 rounded-xl text-sm"
                                     />
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">Examen</label>
+                                    <label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">Examen écrit</label>
                                     <input
-                                        name="date_exam"
+                                        name="date_exam_ecrit"
                                         type="datetime-local"
-                                        defaultValue={formatDateForInput(data?.date_exam)}
+                                        defaultValue={formatDateForInput(data?.dateExamEcrit ?? data?.date_exam_ecrit)}
+                                        required
+                                        className="glass-input p-4 rounded-xl text-sm"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">Examen oral</label>
+                                    <input
+                                        name="date_exam_oral"
+                                        type="datetime-local"
+                                        defaultValue={formatDateForInput(data?.dateExamOral ?? data?.date_exam_oral)}
                                         required
                                         className="glass-input p-4 rounded-xl text-sm"
                                     />
@@ -176,7 +217,7 @@ export default function FormFields({ data }: ConcoursProps) {
                             </label>
                             <input
                                 name="adress_exam"
-                                defaultValue={data?.adress_exam || ""}
+                                defaultValue={data?.adressExam ?? data?.adress_exam ?? ""}
                                 placeholder="ex: Campus universitaire (Yaoundé 1) : Amphi 1000"
                                 className="glass-input p-5 rounded-2xl w-full"
                             />
@@ -196,7 +237,7 @@ export default function FormFields({ data }: ConcoursProps) {
                                 <label className="text-sm font-black text-slate-300 uppercase tracking-widest ml-1">Description / Bio</label>
                                 <textarea
                                     name="concours_bio"
-                                    defaultValue={data?.concours_bio || ""}
+                                    defaultValue={data?.concoursBio ?? data?.concours_bio ?? ""}
                                     placeholder="Détails supplémentaires sur le concours..."
                                     rows={4}
                                     className="glass-input p-5 rounded-2xl w-full resize-none"
@@ -225,7 +266,7 @@ export default function FormFields({ data }: ConcoursProps) {
                         <div className="pt-6">
                             <button
                                 type="submit"
-                                className="w-full bg-linear-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-indigo-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group"
+                                className="w-full bg-linear-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-black py-5 px-8 rounded-2xl shadow-xl hover:shadow-indigo-500/25 transform hover:scale-[1.02] active:scale-95 transition-all duration-300 uppercase tracking-widest flex items-center justify-center gap-3 group cursor-pointer"
                             >
                                 <CheckCircle2 size={24} className="group-hover:scale-110 transition-transform" />
                                 <span>Sauvegarder les modifications</span>
@@ -236,5 +277,12 @@ export default function FormFields({ data }: ConcoursProps) {
             </div>
         </div>
     );
+}
 
+export default function FormFields(props: ConcoursProps) {
+    return (
+        <Suspense fallback={<div className="text-center p-10 text-white">Chargement...</div>}>
+            <FormFieldsContent {...props} />
+        </Suspense>
+    );
 }

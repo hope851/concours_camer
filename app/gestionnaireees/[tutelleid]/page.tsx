@@ -16,16 +16,17 @@ export default async function GestionEesPage({
   const user = await GetCurrentUser();
   const isAdmin = user?.role === 'ADMIN';
 
-  const etablissements = await prisma.eES.findMany({
-    where: { tutelle_id: tid },
+  const etablissements = await prisma.ees.findMany({
+    where: { tutelleId: tid },
     include: {
-      tutelle: true,
+      tutelleInstitutionelle: true,
+      ville: true,
       _count: {
-        select: { filieres: true, concours: true },
+        select: { programme: true, sessionAdmission: true },
       },
-      filieres: true,
+      programme: true,
     },
-    orderBy: { nom_ees: 'asc' }
+    orderBy: { nomEes: 'asc' }
   });
 
   const AddButton = ({ outline = false }: { outline?: boolean }) => (
@@ -96,8 +97,8 @@ export default async function GestionEesPage({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {etablissements.map((ees, idx) => (
             <div key={ees.id} className="h-full animate-in fade-in slide-in-from-bottom-8 fill-mode-both" style={{ animationDelay: `${idx * 100}ms` }}>
-              {/* On injecte tutelle_id pour que EesCard puisse le passer aux concours */}
-              <EesCard data={{ ...ees, tutelle_id: tid }} />
+              {/* On injecte tutelleId pour que EesCard puisse le passer aux concours */}
+              <EesCard data={{ ...ees, tutelleId: tid }} />
             </div>
           ))}
         </div>

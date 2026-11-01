@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GetCurrentUser, UpdateUserProfile, ChangePassword } from '@/app/action/user';
+import { GetCurrentUser, GetUserFollows, UpdateUserProfile, ChangePassword } from '@/app/action/user';
 import { useRouter } from 'next/navigation';
 import {
     User, Mail, Shield, Key, CheckCircle2,
     AlertCircle, Loader2, ArrowLeft, Save,
-    Lock, Eye, EyeOff
+    Lock, Eye, EyeOff, Bell, Building2, GraduationCap, BookOpen
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ export default function UserProfileSettings() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showPasswords, setShowPasswords] = useState({ old: false, new: false, confirm: false });
+    const [follows, setFollows] = useState<any>(null);
 
     const router = useRouter();
 
@@ -28,6 +29,8 @@ export default function UserProfileSettings() {
                 return;
             }
             setUser(data);
+            const followData = await GetUserFollows();
+            setFollows(followData);
             setLoading(false);
         }
         fetchUser();
@@ -103,6 +106,61 @@ export default function UserProfileSettings() {
                         {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                         <p className="text-sm font-bold">{message.text}</p>
                     </div>
+                )}
+
+                {/* Mes suivis */}
+                {follows && (
+                    <section className="glass-card rounded-[32px] border-white/5 overflow-hidden animate-scale-in mb-8">
+                        <div className="p-8 border-b border-white/5 bg-white/2 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
+                                <Bell className="text-pink-400" size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-white uppercase tracking-wider">Mes suivis</h2>
+                                <p className="text-slate-500 text-xs">Établissements, tutelles et programmes que vous suivez</p>
+                            </div>
+                        </div>
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <GraduationCap size={12} /> Établissements ({follows.ees?.length || 0})
+                                </h3>
+                                <div className="space-y-2">
+                                    {follows.ees?.length ? follows.ees.map((f: any) => (
+                                        <Link key={f.id} href={`/explore/${f.ees.id}`} className="block p-3 rounded-xl bg-white/5 border border-white/5 hover:border-indigo-500/30 transition text-sm font-bold text-white">
+                                            {f.ees.nomEes}
+                                            <span className="block text-[10px] text-slate-500 font-medium">{f.ees.ville?.nomVille}</span>
+                                        </Link>
+                                    )) : <p className="text-slate-600 text-xs italic">Aucun établissement suivi</p>}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Building2 size={12} /> Tutelles ({follows.tutelles?.length || 0})
+                                </h3>
+                                <div className="space-y-2">
+                                    {follows.tutelles?.length ? follows.tutelles.map((f: any) => (
+                                        <Link key={f.id} href={`/tutelles/${f.tutelle.id}`} className="block p-3 rounded-xl bg-white/5 border border-white/5 hover:border-amber-500/30 transition text-sm font-bold text-white">
+                                            {f.tutelle.nomTutelle}
+                                        </Link>
+                                    )) : <p className="text-slate-600 text-xs italic">Aucune tutelle suivie</p>}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <BookOpen size={12} /> Programmes ({follows.programmes?.length || 0})
+                                </h3>
+                                <div className="space-y-2">
+                                    {follows.programmes?.length ? follows.programmes.map((f: any) => (
+                                        <Link key={f.id} href={`/explore/${f.programme.ees.id}`} className="block p-3 rounded-xl bg-white/5 border border-white/5 hover:border-violet-500/30 transition text-sm font-bold text-white">
+                                            {f.programme.nomProgramme}
+                                            <span className="block text-[10px] text-slate-500 font-medium">{f.programme.ees.nomEes}</span>
+                                        </Link>
+                                    )) : <p className="text-slate-600 text-xs italic">Aucun programme suivi</p>}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 )}
 
                 <div className="space-y-8">

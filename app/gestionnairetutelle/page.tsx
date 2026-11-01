@@ -7,8 +7,9 @@ import { GetCurrentUser } from "@/app/action/user";
 export default async function GestionPage() {
   // 1. Récupérer TOUS les instituts (on enlève le filtre where pour tout avoir)
   const institutions = await prisma.tutelleInstitutionelle.findMany({
-    orderBy: { nom_tutelle: 'asc' },
+    orderBy: { nomTutelle: 'asc' },
     include: {
+      pays: { select: { nomPays: true, region: true } },
       _count: {
         select: { ees: true }
       }

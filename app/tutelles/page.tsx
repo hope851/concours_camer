@@ -7,12 +7,20 @@ import Navbar from "@/components/Navbar";
 
 interface Tutelle {
   id: string;
-  nom_tutelle: string;
+  nomTutelle?: string;
+  nom_tutelle?: string;
+  nomTutelleTech?: string | null;
   nom_tutelle_tech?: string | null;
+  tutelleBio?: string | null;
   tutelle_bio?: string | null;
   region?: string | null;
+  pays?: { nomPays?: string; region?: string };
   _count?: { ees: number };
 }
+
+const getNomTutelle = (t: Tutelle) => t.nomTutelle ?? t.nom_tutelle ?? '';
+const getNomTutelleTech = (t: Tutelle) => t.nomTutelleTech ?? t.nom_tutelle_tech;
+const getTutelleBio = (t: Tutelle) => t.tutelleBio ?? t.tutelle_bio;
 
 export default function TutellesPage() {
   const [tutelles, setTutelles] = useState<Tutelle[]>([]);
@@ -43,8 +51,8 @@ export default function TutellesPage() {
       const term = search.toLowerCase();
       result = result.filter(
         (t) =>
-          t.nom_tutelle.toLowerCase().includes(term) ||
-          (t.nom_tutelle_tech && t.nom_tutelle_tech.toLowerCase().includes(term))
+          getNomTutelle(t).toLowerCase().includes(term) ||
+          (getNomTutelleTech(t) && getNomTutelleTech(t)!.toLowerCase().includes(term))
       );
     }
     setFiltered(result);
@@ -96,8 +104,8 @@ export default function TutellesPage() {
                 >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-1">{t.nom_tutelle}</h3>
-                    <p className="text-sm text-slate-400 line-clamp-2">{t.nom_tutelle_tech || "Ministère"}</p>
+                    <h3 className="text-lg font-bold text-white mb-1">{getNomTutelle(t)}</h3>
+                    <p className="text-sm text-slate-400 line-clamp-2">{getNomTutelleTech(t) || "Ministère"}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-slate-400 text-sm">Établissements</p>
@@ -107,11 +115,11 @@ export default function TutellesPage() {
 
                 <div className="mt-4 flex items-center gap-3 text-slate-300">
 
-                  <span className="text-sm">{t.tutelle_bio ? t.tutelle_bio.slice(0, 80) : "—"}</span>
+                  <span className="text-sm">{getTutelleBio(t) ? getTutelleBio(t)!.slice(0, 80) : "—"}</span>
                 </div>
                 <div className="mt-4 flex items-center gap-3 text-slate-300">
                   <MapPin className="w-4 h-4 text-pink-400" />
-                  <span className="text-sm">{t.region || "Région non spécifiée"}</span>
+                  <span className="text-sm">{t.pays?.nomPays ?? t.region ?? "Cameroun"}</span>
                 </div>
 
                 <ArrowRight className="w-5 h-5 text-indigo-400 absolute bottom-6 right-6 group-hover:translate-x-1 transition-transform" />

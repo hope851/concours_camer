@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
 const connectionString = process.env.DATABASE_URL
 
@@ -6,17 +8,23 @@ if (!connectionString || connectionString === 'undefined') {
   throw new Error("❌ Erreur : DATABASE_URL n'est pas définie dans l'environnement.")
 }
 
-const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClient
+declare global {
+  var prisma: PrismaClient | undefined
 }
 
-// Version standard, ultra-stable pour l'environnement Docker
-const prisma = globalForPrisma.prisma ?? new PrismaClient({
+const pool = new Pool({ connectionString })
+const adapter = new PrismaPg(pool)
+
+const basePrisma = globalThis.prisma ?? new PrismaClient({
+  adapter,
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 })
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
+  globalThis.prisma = basePrisma
 }
 
+const prisma = basePrisma
+
 export default prisma
+

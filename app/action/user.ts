@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { Role } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 // --- FONCTIONS EXISTANTES (AUTHENTIFICATION) ---
 
@@ -22,21 +23,31 @@ export async function RegisterUser(formData: FormData) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.users.create({
-      data: { nom, email, password: hashedPassword, role: "USER" },
+      data: {
+        id: randomUUID(),
+        nom,
+        email,
+        password: hashedPassword,
+        role: "USER",
+      },
     });
 
     const cookieStore = await cookies();
-    cookieStore.set('userId', newUser.id, {
+    cookieStore.set("userId", newUser.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
-      path: '/'
+      path: "/",
     });
 
     revalidatePath("/profile");
     return { success: true, userId: newUser.id, message: "Inscription réussie ! Bienvenue sur Concours-Camer." };
-  } catch (error) {
+  } catch (error: any) {
+    const message = String(error?.message || "");
+    if (message.includes("ECONNREFUSED") || message.includes("Can't reach database") || message.includes("database") && message.includes("connect")) {
+      return { error: "La base de données n'est pas disponible. Vérifiez PostgreSQL et la variable DATABASE_URL." };
+    }
     return { error: "Une erreur technique est survenue" };
   }
 }
@@ -54,12 +65,12 @@ export async function LoginUser(formData: FormData) {
     if (!user.isActive) return { error: "Ce compte a été désactivé" };
 
     const cookieStore = await cookies();
-    cookieStore.set('userId', user.id, {
+    cookieStore.set("userId", user.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
-      path: '/'
+      path: "/",
     });
 
     revalidatePath("/");
@@ -71,7 +82,7 @@ export async function LoginUser(formData: FormData) {
 
 export async function LogoutUser() {
   const cookieStore = await cookies();
-  cookieStore.delete('userId');
+  cookieStore.delete("userId");
   revalidatePath("/");
   return { success: true };
 }
@@ -79,13 +90,28 @@ export async function LogoutUser() {
 export async function GetCurrentUser() {
   try {
     const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
+    const userId = cookieStore.get("userId")?.value;
     if (!userId) return null;
 
-    return await prisma.users.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, nom: true, role: true, isActive: true, date_inscription: true, eesId:true, }
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        role: true,
+        isActive: true,
+        dateInscription: true,
+        ees: { select: { id: true, nomEes: true }, take: 1 },
+      },
     });
+
+    if (!user) return null;
+
+    return {
+      ...user,
+      eesId: user.ees[0]?.id ?? null,
+    };
   } catch (error) {
     return null;
   }
@@ -95,58 +121,68 @@ export async function GetCurrentUser() {
 
 export async function GetAllUsers() {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== 'ADMIN') return [];
+  if (!admin || admin.role !== "ADMIN") return [];
 
-  return await prisma.users.findMany({
-    orderBy: { date_inscription: 'desc' },
-    select: { id: true, nom: true, email: true, role: true, isActive: true, date_inscription: true, eesId: true }
+  const users = await prisma.users.findMany({
+    orderBy: { dateInscription: "desc" },
+    select: {
+      id: true,
+      nom: true,
+      email: true,
+      role: true,
+      isActive: true,
+      dateInscription: true,
+      ees: { select: { id: true, nomEes: true }, take: 1 },
+    },
   });
+
+  return users.map((user) => ({
+    ...user,
+    eesId: user.ees[0]?.id ?? null,
+  }));
 }
 
 export async function UpdateUserStatus(userId: string, status: boolean) {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== 'ADMIN') return { error: "Non autorisé" };
+  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
 
   await prisma.users.update({ where: { id: userId }, data: { isActive: status } });
   revalidatePath("/profile/utilisateur");
   return { success: true };
 }
 
-export async function UpdateUserRole(userId: string, role: Role) { // <--- Utilise Role ici
+export async function UpdateUserRole(userId: string, role: Role) {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== 'ADMIN') return { error: "Non autorisé" };
+  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
 
   await prisma.users.update({
     where: { id: userId },
-    data: { role }
+    data: { role },
   });
-  revalidatePath("/profile/admin"); // Mets le bon chemin ici
+  revalidatePath("/profile/admin");
   return { success: true };
 }
-
 
 export async function GetMyEES() {
   try {
     const user = await GetCurrentUser();
     if (!user) return [];
 
-    const userWithTutelle = await prisma.users.findUnique({
+    const userWithEes = await prisma.users.findUnique({
       where: { id: user.id },
-      select: { eesId: true }
-    });
-
-    if (!userWithTutelle?.eesId) return [];
-
-    const ees = await prisma.eES.findMany({
-      where: { id: userWithTutelle.eesId },
       include: {
-        tutelle: true,
-        _count: { select: { concours: true, filieres: true } }
+        ees: {
+          include: {
+            tutelleInstitutionelle: true,
+            ville: true,
+            _count: { select: { sessionAdmission: true, programme: true } },
+          },
+          orderBy: { nomEes: "asc" },
+        },
       },
-      orderBy: { nom_ees: 'asc' }
     });
 
-    return ees;
+    return userWithEes?.ees ?? [];
   } catch (error) {
     console.error("Erreur GetMyEES:", error);
     return [];
@@ -165,7 +201,6 @@ export async function UpdateUserProfile(formData: FormData) {
 
     if (!nom || !email) return { error: "Nom et email requis" };
 
-    // Check if email is already taken by another user
     if (email !== user.email) {
       const existing = await prisma.users.findUnique({ where: { email } });
       if (existing) return { error: "Cet email est déjà utilisé" };
@@ -173,7 +208,7 @@ export async function UpdateUserProfile(formData: FormData) {
 
     await prisma.users.update({
       where: { id: user.id },
-      data: { nom, email }
+      data: { nom, email },
     });
 
     revalidatePath("/profile");
@@ -213,7 +248,7 @@ export async function ChangePassword(formData: FormData) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await prisma.users.update({
       where: { id: user.id },
-      data: { password: hashedPassword }
+      data: { password: hashedPassword },
     });
 
     return { success: true, message: "Mot de passe modifié avec succès" };
@@ -225,13 +260,13 @@ export async function ChangePassword(formData: FormData) {
 export async function GetSystemStats() {
   try {
     const user = await GetCurrentUser();
-    if (!user || user.role !== 'ADMIN') return null;
+    if (!user || user.role !== "ADMIN") return null;
 
     const [userCount, newsCount, concoursCount, eesCount] = await Promise.all([
       prisma.users.count(),
       prisma.news.count(),
-      prisma.concours.count(),
-      prisma.eES.count()
+      prisma.sessionAdmission.count(),
+      prisma.ees.count(),
     ]);
 
     return { userCount, newsCount, concoursCount, eesCount };
@@ -242,24 +277,192 @@ export async function GetSystemStats() {
 
 export async function GetAllEes() {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== 'ADMIN') return [];
+  if (!admin || admin.role !== "ADMIN") return [];
 
-  return await prisma.eES.findMany({
-    orderBy: { nom_ees: 'asc' },
-    select: { id: true, nom_ees: true }
+  return await prisma.ees.findMany({
+    orderBy: { nomEes: "asc" },
+    select: { id: true, nomEes: true },
   });
+}
+
+export async function GetAllSubscriptions() {
+  const admin = await GetCurrentUser();
+  if (!admin || admin.role !== "ADMIN") return null;
+
+  const [ees, tutelles, programmes] = await Promise.all([
+    prisma.followEes.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, nom: true, email: true } },
+        ees: { select: { id: true, nomEes: true } },
+      },
+    }),
+    prisma.followTutelle.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, nom: true, email: true } },
+        tutelle: { select: { id: true, nomTutelle: true } },
+      },
+    }),
+    prisma.followProgramme.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, nom: true, email: true } },
+        programme: {
+          select: {
+            id: true,
+            nomProgramme: true,
+            niveau: true,
+            ees: { select: { id: true, nomEes: true } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  return { ees, tutelles, programmes };
+}
+
+export async function DeleteAdminSubscription(type: "ees" | "tutelle" | "programme", id: string) {
+  const admin = await GetCurrentUser();
+  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
+
+  try {
+    if (type === "ees") {
+      await prisma.followEes.delete({ where: { id } });
+    } else if (type === "tutelle") {
+      await prisma.followTutelle.delete({ where: { id } });
+    } else {
+      await prisma.followProgramme.delete({ where: { id } });
+    }
+
+    revalidatePath("/profile/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur DeleteAdminSubscription:", error);
+    return { error: "Impossible de supprimer cet abonnement." };
+  }
 }
 
 export async function AssignEesToUser(userId: string, eesId: string | null) {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== 'ADMIN') return { error: "Non autorisé" };
+  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
 
   await prisma.users.update({
     where: { id: userId },
-    data: { eesId }
+    data: {
+      ees: eesId ? { set: [{ id: eesId }] } : { set: [] },
+    },
   });
 
   revalidatePath("/profile/admin");
   return { success: true };
 }
 
+// --- SUIVIS UTILISATEUR ---
+
+export async function GetUserFollows() {
+  const user = await GetCurrentUser();
+  if (!user) return null;
+
+  const [ees, tutelles, programmes] = await Promise.all([
+    prisma.followEes.findMany({
+      where: { userId: user.id },
+      include: { ees: { select: { id: true, nomEes: true, domaine: true, ville: { select: { nomVille: true } } } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.followTutelle.findMany({
+      where: { userId: user.id },
+      include: { tutelle: { select: { id: true, nomTutelle: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.followProgramme.findMany({
+      where: { userId: user.id },
+      include: {
+        programme: {
+          select: {
+            id: true,
+            nomProgramme: true,
+            niveau: true,
+            ees: { select: { id: true, nomEes: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  return { ees, tutelles, programmes };
+}
+
+export async function ToggleFollowEes(eesId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return { error: "Non connecté" };
+
+  const existing = await prisma.followEes.findUnique({
+    where: { userId_eesId: { userId: user.id, eesId } },
+  });
+
+  if (existing) {
+    await prisma.followEes.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.followEes.create({
+      data: { id: randomUUID(), userId: user.id, eesId },
+    });
+  }
+
+  revalidatePath("/profile/utilisateur");
+  revalidatePath(`/explore/${eesId}`);
+  return { success: true };
+}
+
+export async function ToggleFollowTutelle(tutelleId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return { error: "Non connecté" };
+
+  const existing = await prisma.followTutelle.findUnique({
+    where: { userId_tutelleId: { userId: user.id, tutelleId } },
+  });
+
+  if (existing) {
+    await prisma.followTutelle.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.followTutelle.create({
+      data: { id: randomUUID(), userId: user.id, tutelleId },
+    });
+  }
+
+  revalidatePath("/profile/utilisateur");
+  revalidatePath(`/tutelles/${tutelleId}`);
+  return { success: true };
+}
+
+export async function ToggleFollowProgramme(programmeId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return { error: "Non connecté" };
+
+  const existing = await prisma.followProgramme.findUnique({
+    where: { userId_programmeId: { userId: user.id, programmeId } },
+  });
+
+  if (existing) {
+    await prisma.followProgramme.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.followProgramme.create({
+      data: { id: randomUUID(), userId: user.id, programmeId },
+    });
+  }
+
+  revalidatePath("/profile/utilisateur");
+  return { success: true };
+}
+
+export async function IsFollowingEes(eesId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return false;
+
+  const follow = await prisma.followEes.findUnique({
+    where: { userId_eesId: { userId: user.id, eesId } },
+  });
+  return !!follow;
+}

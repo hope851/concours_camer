@@ -7,13 +7,23 @@ import Navbar from '@/components/Navbar';
 
 interface EES {
   id: string;
-  nom_ees: string;
-  ees_type: string;
-  ville: string;
-  domaine: string;
-  tutelle: { nom_tutelle: string };
-  _count?: { filieres: number; concours: number };
+  nomEes?: string;
+  nom_ees?: string;
+  eesType?: string;
+  ees_type?: string;
+  ville?: { nomVille: string } | string;
+  domaine?: string;
+  tutelleInstitutionelle?: { nomTutelle: string };
+  tutelle?: { nom_tutelle: string };
+  _count?: { programme?: number; filieres?: number; sessionAdmission?: number; concours?: number };
 }
+
+const getNomEes = (ees: EES) => ees.nomEes ?? ees.nom_ees ?? '';
+const getEesType = (ees: EES) => ees.eesType ?? ees.ees_type ?? '';
+const getVille = (ees: EES) => typeof ees.ville === 'object' ? (ees.ville as { nomVille: string })?.nomVille ?? '' : (ees.ville as string) ?? '';
+const getTutelle = (ees: EES) => ees.tutelleInstitutionelle?.nomTutelle ?? ees.tutelle?.nom_tutelle ?? '';
+const getFilieres = (ees: EES) => ees._count?.programme ?? ees._count?.filieres ?? 0;
+const getConcours = (ees: EES) => ees._count?.sessionAdmission ?? ees._count?.concours ?? 0;
 
 export default function ExplorePage() {
   const [eesData, setEesData] = useState<EES[]>([]);
@@ -48,17 +58,17 @@ export default function ExplorePage() {
 
     if (searchTerm) {
       result = result.filter(ees =>
-        ees.nom_ees.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ees.domaine.toLowerCase().includes(searchTerm.toLowerCase())
+        getNomEes(ees).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (ees.domaine || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (filterType) {
-      result = result.filter(ees => ees.ees_type === filterType);
+      result = result.filter(ees => getEesType(ees) === filterType);
     }
 
     if (filterVille) {
-      result = result.filter(ees => ees.ville === filterVille);
+      result = result.filter(ees => getVille(ees) === filterVille);
     }
 
     if (filterDomaine) {
@@ -68,9 +78,9 @@ export default function ExplorePage() {
     setFilteredEES(result);
   }, [searchTerm, filterType, filterVille, filterDomaine, eesData]);
 
-  const types = [...new Set(eesData.map(e => e.ees_type))];
-  const villes = [...new Set(eesData.map(e => e.ville))];
-  const domaines = [...new Set(eesData.map(e => e.domaine))];
+  const types = [...new Set(eesData.map(e => getEesType(e)).filter(Boolean))];
+  const villes = [...new Set(eesData.map(e => getVille(e)).filter(Boolean))];
+  const domaines = [...new Set(eesData.map(e => e.domaine).filter(Boolean))];
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -211,34 +221,34 @@ export default function ExplorePage() {
 
                 <div className="relative">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
-                    {ees.ees_type === 'PUBLIC' ? '🏤 Public' : '🏢 Privé'}
+                    {getEesType(ees) === 'PUBLIC' ? '🏤 Public' : '🏢 Privé'}
                   </div>
 
-                  <h3 className="text-2xl font-black text-white mb-6 group-hover:text-indigo-300 transition-colors line-clamp-2 tracking-tight leading-tight">{ees.nom_ees}</h3>
+                  <h3 className="text-2xl font-black text-white mb-6 group-hover:text-indigo-300 transition-colors line-clamp-2 tracking-tight leading-tight">{getNomEes(ees)}</h3>
 
                   <div className="space-y-4 mb-8">
-                    <p className="text-slate-400 text-sm font-bold flex items-center gap-3">
+                    <div className="text-slate-400 text-sm font-bold flex items-center gap-3">
                       <div className="p-2 bg-pink-500/10 rounded-lg border border-pink-500/20">
                         <MapPin size={16} className="text-pink-400" />
                       </div>
-                      {ees.ville}
-                    </p>
-                    <p className="text-slate-400 text-sm font-bold flex items-center gap-3">
+                      {getVille(ees)}
+                    </div>
+                    <div className="text-slate-400 text-sm font-bold flex items-center gap-3">
                       <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
                         <BookOpen size={16} className="text-blue-400" />
                       </div>
                       {ees.domaine}
-                    </p>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/5">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filières</p>
-                      <p className="text-white font-black text-xl">{ees._count?.filieres || 0}</p>
+                      <p className="text-white font-black text-xl">{getFilieres(ees)}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Concours</p>
-                      <p className="text-white font-black text-xl">{ees._count?.concours || 0}</p>
+                      <p className="text-white font-black text-xl">{getConcours(ees)}</p>
                     </div>
                   </div>
                 </div>
