@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { v2 as cloudinary } from "cloudinary";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -56,6 +56,10 @@ export async function createNewsAction(formData: FormData) {
   });
 
   const slug = slugify(title);
+  const content = formData.get("content") as string;
+  const eesId = parseOptionalId(formData.get("eesId"));
+  const tutelleId = parseOptionalId(formData.get("tutelleId"));
+  const programmeId = parseOptionalId(formData.get("programmeId"));
 
   await prisma.news.create({
     data: {
@@ -63,15 +67,16 @@ export async function createNewsAction(formData: FormData) {
       title,
       slug,
       excerpt: formData.get("excerpt") as string,
-      content: formData.get("content") as string,
+      content,
+      contenthash: createHash("sha256").update(content).digest("hex"),
       category: formData.get("category") as string,
       isUrgent: formData.get("isUrgent") === "on",
       sourceName: (formData.get("sourceName") as string) || null,
       sourceUrl: (formData.get("sourceUrl") as string) || null,
       image: uploadResponse.secure_url,
-      eesId: parseOptionalId(formData.get("eesId")),
-      tutelleId: parseOptionalId(formData.get("tutelleId")),
-      programmeId: parseOptionalId(formData.get("programmeId")),
+      ...(eesId ? { ees: { connect: { id: eesId } } } : {}),
+      ...(tutelleId ? { tutelle: { connect: { id: tutelleId } } } : {}),
+      ...(programmeId ? { programme: { connect: { id: programmeId } } } : {}),
     },
   });
 
