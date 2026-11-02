@@ -147,14 +147,14 @@ export default async function Home() {
                 Flash Concours
               </span>
 
-              <p className="text-slate-300 truncate font-medium">
+              <p className="min-w-0 flex-1 text-slate-300 truncate font-medium">
                 {urgentArticle ? (
                   <Link
                     href={`/news/${urgentArticle.slug}`}
                     className="hover:text-white hover:underline transition-colors flex items-center gap-2"
                   >
                     <span className="font-bold text-white">News :</span>
-                    <span>{urgentArticle.title}</span>
+                    <span className="min-w-0 truncate">{urgentArticle.title}</span>
                   </Link>
                 ) : (
                   <span>Portail officiel d&apos;orientation & des concours d&apos;entrée au Cameroun</span>

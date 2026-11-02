@@ -13,8 +13,10 @@ export default function ThemeSwitch() {
   function toggleTheme() {
     const nextIsLight = !isLight;
     document.documentElement.dataset.theme = nextIsLight ? 'light' : 'dark';
-    localStorage.setItem('concours-camer-theme', nextIsLight ? 'light' : 'dark');
     setIsLight(nextIsLight);
+    try {
+      localStorage.setItem('concours-camer-theme', nextIsLight ? 'light' : 'dark');
+    } catch {}
   }
 
   return (

@@ -62,7 +62,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex gap-6 items-center flex-1 ml-12">
+          <div className="hidden xl:flex gap-6 items-center flex-1 ml-12">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -75,7 +75,7 @@ export default function Navbar() {
           </div>
 
           {/* Auth Section */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden xl:flex items-center gap-3">
             {loading ? (
               <div className="w-10 h-10 bg-white/10 rounded-lg animate-pulse"></div>
             ) : user ? (
@@ -159,8 +159,12 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 hover:bg-white/10 rounded-lg transition"
+            className="xl:hidden p-2 hover:bg-white/10 rounded-lg transition"
+            aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-navigation"
           >
             {isOpen ? (
               <X className="w-6 h-6 text-white" />
@@ -172,7 +176,7 @@ export default function Navbar() {
 
         {/* Mobile Nav */}
         {isOpen && (
-          <div className="md:hidden mt-4 space-y-2 pb-4">
+          <div id="mobile-navigation" className="xl:hidden mt-4 space-y-2 pb-4">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -189,9 +193,9 @@ export default function Navbar() {
                 <div className="w-full h-10 bg-white/10 rounded-lg animate-pulse"></div>
               ) : user ? (
                 <div className="space-y-2">
-                  <div className="px-4 py-2 bg-white/5 rounded-lg">
-                    <p className="text-white font-semibold text-sm">{user.nom}</p>
-                    <p className="text-slate-400 text-xs">{user.email}</p>
+                  <div className="min-w-0 px-4 py-2 bg-white/5 rounded-lg">
+                    <p className="truncate text-white font-semibold text-sm">{user.nom}</p>
+                    <p className="truncate text-slate-400 text-xs">{user.email}</p>
                   </div>
                   <Link
                     href="/profile"
@@ -200,6 +204,24 @@ export default function Navbar() {
                   >
                     Mon Profil
                   </Link>
+                  {user.role === 'ADMIN' && (
+                    <Link
+                      href="/profile/admin"
+                      className="block px-4 py-2 text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 rounded-lg transition font-semibold text-sm"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Console Admin
+                    </Link>
+                  )}
+                  {user.role === 'GESTIONAIRE' && (
+                    <Link
+                      href="/profile/gestion"
+                      className="block px-4 py-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition font-semibold text-sm"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Espace Gestion
+                    </Link>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition font-semibold text-sm"

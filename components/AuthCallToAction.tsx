@@ -78,7 +78,7 @@ export default function AuthCallToAction() {
                             ))}
                         </ul>
 
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <Link
                                 href="/register"
                                 className="px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
