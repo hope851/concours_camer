@@ -3,6 +3,7 @@ import prisma from "../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
+import { GetCurrentUser } from "./user";
 
 /**
  * AJOUTER UNE TUTELLE
@@ -11,6 +12,10 @@ export async function AddTutelle(formData: FormData) {
   let isSuccess = false;
 
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") {
+      return { error: "Action réservée aux administrateurs." };
+    }
     const nomTutelle = formData.get("nom_tutelle") as string;
     const nomTutelleTech = formData.get("nom_tutelle_tech") as string;
     const siteTutelle = formData.get("site_tutelle") as string;
@@ -68,6 +73,11 @@ export async function UpdateTutelle(formData: FormData) {
   let isSuccess = false;
 
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") {
+      return { error: "Action réservée aux administrateurs." };
+    }
+
     const id = formData.get("id") as string;
     const nomTutelle = formData.get("nom_tutelle") as string;
     const nomTutelleTech = formData.get("nom_tutelle_tech") as string;
@@ -125,6 +135,11 @@ export async function UpdateTutelle(formData: FormData) {
  */
 export async function DeleteTutelle(id: string) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") {
+      return { error: "Action réservée aux administrateurs." };
+    }
+
     await prisma.tutelleInstitutionelle.delete({
       where: { id },
     });

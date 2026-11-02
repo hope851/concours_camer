@@ -143,7 +143,11 @@ export async function UpdateEes(formData: FormData) {
   let nomTutelle = "";
 
   try {
+    const user = await GetCurrentUser();
     const id = formData.get("id") as string;
+    if (!user || (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== id))) {
+      return { error: "Action non autorisée sur cet établissement." };
+    }
     const nomEes = formData.get("nom_ees") as string;
     const eesBio = (formData.get("ees_bio") as string) || "";
     const siteEes = (formData.get("site_ees") as string) || "";
@@ -231,6 +235,11 @@ export async function UpdateEes(formData: FormData) {
 export async function DeleteEes(id: string, tutelle_id: string) {
   let nomTutelle = "";
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") {
+      return { error: "Seul un administrateur peut supprimer un établissement." };
+    }
+
     const tutelle = await prisma.tutelleInstitutionelle.findUnique({
       where: { id: tutelle_id },
       select: { nomTutelle: true }

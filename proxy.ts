@@ -1,25 +1,43 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionToken } from './lib/session';
 
 export function proxy(request: NextRequest) {
-    const userId = request.cookies.get('userId')?.value;
+    const rawToken = request.cookies.get('userId')?.value;
+    const userId = verifySessionToken(rawToken);
     const { pathname } = request.nextUrl;
 
-    // 1. Mets à jour tes routes protégées (enlève /utilisateur si le dossier n'existe plus)
-    // Ajoute '/profile' si tu veux que la page de profil soit protégée
-    const protectedRoutes = ['/profile', '/formupdateconcours', '/formupdateees', '/formupdatetutelle'];
-    
+    const protectedRoutes = [
+        '/profile',
+        '/formupdateconcours',
+        '/formupdateees',
+        '/formupdatetutelle',
+        '/formconcours',
+        '/formees',
+        '/formnews',
+        '/formpays',
+        '/formprogramme',
+        '/formtutelle',
+        '/formville',
+        '/gestionnaireconcours',
+        '/gestionnaireees',
+        '/gestionnairetutelle',
+    ];
+
     const authRoutes = ['/login', '/register'];
 
     const isProtected = protectedRoutes.some(route => pathname.startsWith(route));
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
     if (isProtected && !userId) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        const response = NextResponse.redirect(new URL('/login', request.url));
+        if (rawToken && !userId) {
+            response.cookies.delete('userId');
+        }
+        return response;
     }
 
     if (isAuthRoute && userId) {
-        // 2. CORRECTION ICI : Redirige vers le nouveau chemin du profil
         return NextResponse.redirect(new URL('/profile', request.url));
     }
 

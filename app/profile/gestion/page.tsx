@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { GetCurrentUser, GetMyEES } from '@/app/action/user';
 import { GetMyConcours, ToggleConcoursStatus, GetMyFilieres, DeleteFiliere } from '@/app/action/gestion';
 import { GetTutelles } from '@/app/action/newtutelle';
@@ -17,6 +17,7 @@ import {
 import Navbar from '@/components/Navbar';
 
 function GestionnaireContent() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const nom_tutelle = searchParams.get('nom_tutelle') || "Ma Tutelle";
 
@@ -33,29 +34,31 @@ function GestionnaireContent() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [eesData, newsData, concoursData] = await Promise.all([
+            const userData = await GetCurrentUser();
+            if (!userData || (userData.role !== 'GESTIONAIRE' && userData.role !== 'ADMIN')) {
+                router.replace('/profile');
+                return;
+            }
+            setUser(userData);
+
+            const [eesData, newsData, concoursData, allTutelles] = await Promise.all([
                 GetMyEES(),
                 getNewsAction(),
-                GetMyConcours()
+                GetMyConcours(),
+                GetTutelles()
             ]);
+
             setEesList(eesData || []);
             setNewsList(newsData || []);
             setConcoursList(concoursData || []);
+            setTutelles(allTutelles || []);
             setStats({
                 ees: eesData?.length || 0,
                 concours: concoursData?.length || 0,
                 news: newsData?.length || 0
             });
-
-            // Chargement des tutelles pour le sélecteur
-            const [allTutelles, userData] = await Promise.all([
-                GetTutelles(),
-                GetCurrentUser()
-            ]);
-            setTutelles(allTutelles || []);
-            setUser(userData);
         } catch (error) {
-            console.error("Erreur chargement:", error);
+            console.error("Erreur chargement gestionnaire:", error);
         } finally {
             setLoading(false);
         }
@@ -79,7 +82,7 @@ function GestionnaireContent() {
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
                 <Loader2 className="animate-spin text-purple-500" size={48} />
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Initialisation du tableau de bord...</p>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Initialisation de l'espace de gestion...</p>
             </div>
         </div>
     );
@@ -104,7 +107,9 @@ function GestionnaireContent() {
                             <div className="p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
                                 <BarChart3 size={20} />
                             </div>
-                            <span className="text-sm font-black uppercase tracking-[0.3em]">{nom_tutelle}</span>
+                            <span className="text-sm font-black uppercase tracking-[0.3em]">
+                                {eesList[0]?.tutelleInstitutionelle?.nomTutelle || nom_tutelle}
+                            </span>
                         </div>
                         <h1 className="text-5xl font-black text-white tracking-tighter">Espace Gestion</h1>
                     </div>
@@ -113,7 +118,7 @@ function GestionnaireContent() {
                 {/* Quick Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                     {[
-                        { label: 'Établissements', value: stats.ees, icon: School, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+                        { label: 'Établissements gérés', value: stats.ees, icon: School, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
                         { label: 'Concours Actifs', value: stats.concours, icon: Calendar, color: 'text-purple-400', bg: 'bg-purple-500/10' },
                         { label: 'Actualités', value: stats.news, icon: Newspaper, color: 'text-pink-400', bg: 'bg-pink-500/10' },
                     ].map((stat, i) => (
@@ -157,15 +162,15 @@ function GestionnaireContent() {
                                         <School className="text-indigo-400" size={24} />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-white">Vos Établissements</h2>
-                                        <p className="text-slate-500 text-xs font-medium">Gérez vos institutions et leurs filières</p>
+                                        <h2 className="text-xl font-black text-white">Vos Établissements Rattachés</h2>
+                                        <p className="text-slate-500 text-xs font-medium">Gérez vos institutions et leurs filières d'admission</p>
                                     </div>
                                 </div>
                                 {user?.role === 'ADMIN' && (
                                     <button
                                         onClick={() => {
                                             if (eesList.length > 0) {
-                                                window.location.href = `/formees?tutelle_id=${eesList[0].tutelle_id}&nom=${encodeURIComponent(nom_tutelle)}`;
+                                                window.location.href = `/formees?tutelle_id=${eesList[0].tutelleId}&nom=${encodeURIComponent(nom_tutelle)}`;
                                             } else {
                                                 setShowTutelleModal(true);
                                             }
@@ -194,81 +199,95 @@ function GestionnaireContent() {
                                             {tutelles.map((t) => (
                                                 <Link
                                                     key={t.id}
-                                                    href={`/formees?tutelle_id=${t.id}&nom=${encodeURIComponent(t.nom_tutelle)}`}
+                                                    href={`/formees?tutelle_id=${t.id}&nom=${encodeURIComponent(t.nomTutelle)}`}
                                                     className="flex items-center justify-between p-5 rounded-3xl bg-white/3 hover:bg-indigo-600 border border-white/5 hover:border-indigo-500 transition-all group"
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-white/10">
                                                             <Building2 size={20} />
                                                         </div>
-                                                        <span className="text-white font-bold tracking-tight text-sm">{t.nom_tutelle}</span>
+                                                        <span className="text-white font-bold tracking-tight text-sm">{t.nomTutelle}</span>
                                                     </div>
                                                     <ChevronRight size={18} className="text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
                                                 </Link>
                                             ))}
                                         </div>
-                                        <div className="p-8 bg-slate-900/50 text-center">
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Fin de la liste des institutions</p>
-                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {eesList.map((ees) => (
-                                    <div key={ees.id} className="glass-card rounded-[32px] border-white/5 overflow-hidden border hover:border-indigo-500/30 transition-all p-8 flex flex-col justify-between group">
-                                        <div>
-                                            <div className="flex justify-between items-start mb-6">
-                                                <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                                                    {ees.ees_type}
-                                                </span>
-                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Link href={`/formupdateees?id=${ees.id}&tutelle_id=${ees.tutelleId ?? ees.tutelle_id}`} className="p-3 bg-white/5 hover:bg-indigo-600 rounded-xl transition-all">
-                                                        <Edit3 size={18} />
-                                                    </Link>
-                                                    <button className="p-3 bg-white/5 hover:bg-rose-600 rounded-xl transition-all">
-                                                        <Trash2 size={18} />
-                                                    </button>
+                            {eesList.length === 0 ? (
+                                <div className="p-12 text-center border border-white/5 rounded-[32px] bg-slate-900/40">
+                                    <School className="mx-auto text-slate-600 mb-4" size={48} />
+                                    <h3 className="text-lg font-bold text-white mb-2">Aucun établissement rattaché</h3>
+                                    <p className="text-slate-500 text-sm max-w-md mx-auto">
+                                        Votre compte gestionnaire n'a pas encore été rattaché à un établissement. Contactez un administrateur pour configurer votre rattachement.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {eesList.map((ees) => (
+                                        <div key={ees.id} className="glass-card rounded-[32px] border-white/5 overflow-hidden border hover:border-indigo-500/30 transition-all p-8 flex flex-col justify-between group">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                                        {ees.eesType || 'Université'}
+                                                    </span>
+                                                    <div className="flex gap-2">
+                                                        <Link href={`/formupdateees?id=${ees.id}&tutelle_id=${ees.tutelleId}`} className="p-3 bg-white/5 hover:bg-indigo-600 rounded-xl transition-all" title="Modifier l'EES">
+                                                            <Edit3 size={18} />
+                                                        </Link>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <h3 className="text-2xl font-black text-white mb-2 leading-tight">{ees.nomEes ?? ees.nom_ees}</h3>
-                                            <div className="flex items-center gap-2 text-slate-500 mb-6 font-medium text-sm">
-                                                <MapPin size={14} className="text-indigo-500/50" />
-                                                {ees.ville}
+                                                <h3 className="text-2xl font-black text-white mb-2 leading-tight">{ees.nomEes}</h3>
+                                                <div className="flex items-center gap-2 text-slate-500 mb-6 font-medium text-sm">
+                                                    <MapPin size={14} className="text-indigo-500/50" />
+                                                    {ees.ville?.nomVille || 'Ville non définie'}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/5">
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Concours</p>
+                                                        <p className="text-xl font-bold text-white">{ees._count?.sessionAdmission ?? 0}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Filières</p>
+                                                        <p className="text-xl font-bold text-white">{ees._count?.programme ?? 0}</p>
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/5">
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Concours</p>
-                                                    <p className="text-xl font-bold text-white">{ees._count?.sessionAdmission ?? ees._count?.concours ?? 0}</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Filières</p>
-                                                    <p className="text-xl font-bold text-white">{ees._count?.programme ?? ees._count?.filieres ?? 0}</p>
-                                                </div>
+                                            <div className="mt-8 flex gap-3">
+                                                <Link
+                                                    href={`/gestionnaireconcours/${ees.id}?nom_ees=${encodeURIComponent(ees.nomEes || '')}&tutelle_id=${ees.tutelleId}`}
+                                                    className="flex-1 bg-white/5 hover:bg-white/10 text-white text-center py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group-hover:border-indigo-500/20 border border-transparent"
+                                                >
+                                                    Gérer les Concours <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                                </Link>
                                             </div>
                                         </div>
-
-                                        <div className="mt-8 flex gap-3">
-                                            <Link
-                                                href={`/gestionnaireconcours/${ees.id}?nom_ees=${encodeURIComponent(ees.nomEes ?? ees.nom_ees ?? '')}&tutelle_id=${ees.tutelleId ?? ees.tutelle_id}`}
-                                                className="flex-1 bg-white/5 hover:bg-white/10 text-white text-center py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 group-hover:border-indigo-500/20 border border-transparent"
-                                            >
-                                                Gérer les Concours <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* SECTION CONCOURS */}
                     {activeTab === 'concours' && (
                         <div className="space-y-6">
-                            <div className="bg-white/5 p-8 rounded-[32px] border border-white/5">
-                                <h2 className="text-xl font-black text-white mb-2">Sessions d&apos;Admission</h2>
-                                <p className="text-slate-500 text-sm font-medium">Surveillance et contrôle des concours ouverts</p>
+                            <div className="bg-white/5 p-8 rounded-[32px] border border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <h2 className="text-xl font-black text-white mb-2">Sessions d&apos;Admission</h2>
+                                    <p className="text-slate-500 text-sm font-medium">Surveillance et contrôle des concours ouverts</p>
+                                </div>
+                                {eesList.length > 0 && (
+                                    <Link
+                                        href={`/formconcours?ees_id=${eesList[0].id}&nom_ees=${encodeURIComponent(eesList[0].nomEes)}`}
+                                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-500/20"
+                                    >
+                                        <Plus size={18} /> Nouveau Concours
+                                    </Link>
+                                )}
                             </div>
 
                             <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden overflow-x-auto">
@@ -285,8 +304,8 @@ function GestionnaireContent() {
                                         {concoursList.map((c) => (
                                             <tr key={c.id} className="group hover:bg-white/2 transition-all">
                                                 <td className="px-8 py-6">
-                                                    <p className="font-bold text-white mb-1">{c.nomConcours ?? c.nom_concours}</p>
-                                                    <p className="text-xs text-slate-500">{c.diplomeRequis ?? c.diplome_requis}</p>
+                                                    <p className="font-bold text-white mb-1">{c.nomConcours}</p>
+                                                    <p className="text-xs text-slate-500">{c.diplomeRequis}</p>
                                                 </td>
                                                 <td className="px-8 py-6">
                                                     <div className="flex items-center gap-2 text-sm text-slate-300">
@@ -303,15 +322,21 @@ function GestionnaireContent() {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6 text-right">
-                                                    <button
-                                                        onClick={() => handleToggleConcours(c.id, c.etat)}
-                                                        className={`p-3 rounded-xl border transition-all ${c.etat
-                                                            ? 'hover:bg-rose-500/10 border-white/5 text-slate-500 hover:text-rose-400'
-                                                            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                                            }`}
-                                                    >
-                                                        {c.etat ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Link href={`/formupdateconcours?id=${c.id}&ees_id=${c.eesId}`} className="p-3 bg-white/5 hover:bg-purple-600 rounded-xl transition-all" title="Modifier">
+                                                            <Edit3 size={16} />
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => handleToggleConcours(c.id, c.etat)}
+                                                            className={`p-3 rounded-xl border transition-all ${c.etat
+                                                                ? 'hover:bg-rose-500/10 border-white/5 text-slate-500 hover:text-rose-400'
+                                                                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                                                }`}
+                                                            title={c.etat ? "Fermer le concours" : "Ouvrir le concours"}
+                                                        >
+                                                            {c.etat ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -331,7 +356,7 @@ function GestionnaireContent() {
                                     </div>
                                     <div>
                                         <h2 className="text-xl font-black text-white">Vos Actualités</h2>
-                                        <p className="text-slate-500 text-xs font-medium">Communiqués et infos officielles</p>
+                                        <p className="text-slate-500 text-xs font-medium">Communiqués et informations officielles</p>
                                     </div>
                                 </div>
                                 <Link href="/formnews" className="flex items-center gap-2 bg-pink-600 hover:bg-pink-500 text-white px-6 py-3 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-500/20">
@@ -348,10 +373,7 @@ function GestionnaireContent() {
                                                     {news.category}
                                                 </span>
                                                 <div className="flex gap-2">
-                                                    <Link href={`/dashboard/news/edit/${news.id}`} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-all">
-                                                        <Edit3 size={16} />
-                                                    </Link>
-                                                    <button onClick={() => handleDeleteNews(news.id)} className="p-2.5 bg-white/5 hover:bg-rose-600 rounded-xl transition-all">
+                                                    <button onClick={() => handleDeleteNews(news.id)} className="p-2.5 bg-white/5 hover:bg-rose-600 rounded-xl transition-all" title="Supprimer">
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>

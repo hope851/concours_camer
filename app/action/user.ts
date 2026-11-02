@@ -6,13 +6,14 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { Role } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { signSessionToken, verifySessionToken } from "@/lib/session";
 
 // --- FONCTIONS EXISTANTES (AUTHENTIFICATION) ---
 
 export async function RegisterUser(formData: FormData) {
   try {
-    const nom = formData.get("nom") as string;
-    const email = formData.get("email") as string;
+    const nom = (formData.get("nom") as string)?.trim();
+    const email = (formData.get("email") as string)?.trim().toLowerCase();
     const password = formData.get("password") as string;
 
     if (!nom || !email || !password) return { error: "Tous les champs sont requis" };
@@ -28,12 +29,12 @@ export async function RegisterUser(formData: FormData) {
         nom,
         email,
         password: hashedPassword,
-        role: "USER",
+        role: "USER", // Rôle toujours fixé à USER à l'inscription
       },
     });
 
     const cookieStore = await cookies();
-    cookieStore.set("userId", newUser.id, {
+    cookieStore.set("userId", signSessionToken(newUser.id), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -45,7 +46,7 @@ export async function RegisterUser(formData: FormData) {
     return { success: true, userId: newUser.id, message: "Inscription réussie ! Bienvenue sur Concours-Camer." };
   } catch (error: any) {
     const message = String(error?.message || "");
-    if (message.includes("ECONNREFUSED") || message.includes("Can't reach database") || message.includes("database") && message.includes("connect")) {
+    if (message.includes("ECONNREFUSED") || message.includes("Can't reach database") || (message.includes("database") && message.includes("connect"))) {
       return { error: "La base de données n'est pas disponible. Vérifiez PostgreSQL et la variable DATABASE_URL." };
     }
     return { error: "Une erreur technique est survenue" };
@@ -54,8 +55,10 @@ export async function RegisterUser(formData: FormData) {
 
 export async function LoginUser(formData: FormData) {
   try {
-    const email = formData.get("email") as string;
+    const email = (formData.get("email") as string)?.trim().toLowerCase();
     const password = formData.get("password") as string;
+
+    if (!email || !password) return { error: "Email et mot de passe requis" };
 
     const user = await prisma.users.findUnique({ where: { email } });
     if (!user) return { error: "Email ou mot de passe incorrect" };
@@ -65,7 +68,7 @@ export async function LoginUser(formData: FormData) {
     if (!user.isActive) return { error: "Ce compte a été désactivé" };
 
     const cookieStore = await cookies();
-    cookieStore.set("userId", user.id, {
+    cookieStore.set("userId", signSessionToken(user.id), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -90,8 +93,16 @@ export async function LogoutUser() {
 export async function GetCurrentUser() {
   try {
     const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    if (!userId) return null;
+    const token = cookieStore.get("userId")?.value;
+    const userId = verifySessionToken(token);
+    
+    // Si pas de session valide ou signature altérée, refuser et purger le cookie
+    if (!userId) {
+      if (token) {
+        cookieStore.delete("userId");
+      }
+      return null;
+    }
 
     const user = await prisma.users.findUnique({
       where: { id: userId },
@@ -106,7 +117,11 @@ export async function GetCurrentUser() {
       },
     });
 
-    if (!user) return null;
+    // Si utilisateur introuvable ou compte révoqué, rejeter l'accès
+    if (!user || !user.isActive) {
+      cookieStore.delete("userId");
+      return null;
+    }
 
     return {
       ...user,
@@ -117,7 +132,7 @@ export async function GetCurrentUser() {
   }
 }
 
-// --- NOUVELLES FONCTIONS (ADMINISTRATION) ---
+// --- FONCTIONS D'ADMINISTRATION ---
 
 export async function GetAllUsers() {
   const admin = await GetCurrentUser();
@@ -144,16 +159,32 @@ export async function GetAllUsers() {
 
 export async function UpdateUserStatus(userId: string, status: boolean) {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
+  if (!admin || admin.role !== "ADMIN") return { error: "Action non autorisée" };
+
+  // Empêcher l'administrateur de désactiver son propre compte
+  if (userId === admin.id) {
+    return { error: "Vous ne pouvez pas désactiver votre propre compte administrateur." };
+  }
 
   await prisma.users.update({ where: { id: userId }, data: { isActive: status } });
   revalidatePath("/profile/utilisateur");
+  revalidatePath("/profile/admin");
   return { success: true };
 }
 
 export async function UpdateUserRole(userId: string, role: Role) {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
+  if (!admin || admin.role !== "ADMIN") return { error: "Action non autorisée" };
+
+  // Empêcher l'administrateur de modifier son propre rôle pour éviter de perdre les accès admin
+  if (userId === admin.id) {
+    return { error: "Vous ne pouvez pas modifier votre propre rôle administrateur." };
+  }
+
+  const validRoles: Role[] = ["ADMIN", "GESTIONAIRE", "USER"];
+  if (!validRoles.includes(role)) {
+    return { error: "Rôle invalide" };
+  }
 
   await prisma.users.update({
     where: { id: userId },
@@ -161,6 +192,78 @@ export async function UpdateUserRole(userId: string, role: Role) {
   });
   revalidatePath("/profile/admin");
   return { success: true };
+}
+
+export async function AssignEesToUser(userId: string, eesId: string | null) {
+  const admin = await GetCurrentUser();
+  if (!admin || admin.role !== "ADMIN") return { error: "Action non autorisée" };
+
+  await prisma.users.update({
+    where: { id: userId },
+    data: {
+      ees: eesId ? { set: [{ id: eesId }] } : { set: [] },
+    },
+  });
+
+  revalidatePath("/profile/admin");
+  return { success: true };
+}
+
+/**
+ * Modification administrative du profil d'un utilisateur (Seul l'ADMIN peut modifier le compte d'un autre)
+ */
+export async function AdminUpdateUserProfile(userId: string, formData: FormData) {
+  try {
+    const admin = await GetCurrentUser();
+    if (!admin || admin.role !== "ADMIN") return { error: "Action réservée à l'administrateur." };
+
+    const nom = (formData.get("nom") as string)?.trim();
+    const email = (formData.get("email") as string)?.trim().toLowerCase();
+
+    if (!nom || !email) return { error: "Nom et email requis" };
+
+    const existingTarget = await prisma.users.findUnique({ where: { id: userId } });
+    if (!existingTarget) return { error: "Utilisateur introuvable" };
+
+    if (email !== existingTarget.email) {
+      const duplicate = await prisma.users.findUnique({ where: { email } });
+      if (duplicate) return { error: "Cet email est déjà utilisé par un autre compte" };
+    }
+
+    await prisma.users.update({
+      where: { id: userId },
+      data: { nom, email },
+    });
+
+    revalidatePath("/profile/admin");
+    return { success: true, message: "Compte utilisateur mis à jour par l'administrateur." };
+  } catch (error) {
+    return { error: "Erreur lors de la mise à jour par l'administrateur." };
+  }
+}
+
+/**
+ * Réinitialisation administrative du mot de passe (Seul l'ADMIN peut réinitialiser le mot de passe d'un autre utilisateur)
+ */
+export async function AdminResetUserPassword(userId: string, newPassword: string) {
+  try {
+    const admin = await GetCurrentUser();
+    if (!admin || admin.role !== "ADMIN") return { error: "Action réservée à l'administrateur." };
+
+    if (!newPassword || newPassword.length < 6) {
+      return { error: "Le mot de passe doit comporter au moins 6 caractères" };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.users.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true, message: "Mot de passe réinitialisé avec succès par l'administrateur." };
+  } catch (error) {
+    return { error: "Erreur lors de la réinitialisation du mot de passe." };
+  }
 }
 
 export async function GetMyEES() {
@@ -189,35 +292,68 @@ export async function GetMyEES() {
   }
 }
 
-// --- PROFILE MANAGEMENT ---
+// --- GESTION DU PROFIL (RÈGLES DE SÉCURITÉ STRICTES) ---
 
+/**
+ * Mise à jour de profil par l'utilisateur connecté :
+ * - Un utilisateur non-admin NE PEUT PAS modifier son email (information sensible), ni son rôle, ni son statut, ni son EES.
+ * - Seul l'administrateur a le droit de modifier les informations sensibles d'un compte.
+ */
 export async function UpdateUserProfile(formData: FormData) {
   try {
     const user = await GetCurrentUser();
     if (!user) return { error: "Non connecté" };
 
-    const nom = formData.get("nom") as string;
-    const email = formData.get("email") as string;
+    const nom = (formData.get("nom") as string)?.trim();
+    const requestedEmail = (formData.get("email") as string)?.trim().toLowerCase();
 
-    if (!nom || !email) return { error: "Nom et email requis" };
+    if (!nom) return { error: "Le nom est requis" };
 
-    if (email !== user.email) {
-      const existing = await prisma.users.findUnique({ where: { email } });
+    // VÉRIFICATION DE SÉCURITÉ :
+    // Un utilisateur autre que l'admin ne peut PAS modifier l'adresse email de son compte
+    if (user.role !== "ADMIN") {
+      if (requestedEmail && requestedEmail !== user.email) {
+        return { error: "Seul un administrateur est autorisé à modifier l'adresse email (information sensible du compte)." };
+      }
+
+      // Mise à jour uniquement du nom (information personnelle non sensible)
+      await prisma.users.update({
+        where: { id: user.id },
+        data: { nom },
+      });
+
+      revalidatePath("/profile");
+      revalidatePath("/profile/utilisateur");
+      return { success: true, message: "Profil mis à jour avec succès" };
+    }
+
+    // Si l'utilisateur est ADMIN, il peut modifier son nom et son email
+    if (!requestedEmail) return { error: "L'adresse email est requise pour l'administrateur." };
+
+    if (requestedEmail !== user.email) {
+      const existing = await prisma.users.findUnique({ where: { email: requestedEmail } });
       if (existing) return { error: "Cet email est déjà utilisé" };
     }
 
     await prisma.users.update({
       where: { id: user.id },
-      data: { nom, email },
+      data: { nom, email: requestedEmail },
     });
 
     revalidatePath("/profile");
-    return { success: true, message: "Profil mis à jour avec succès" };
+    revalidatePath("/profile/utilisateur");
+    return { success: true, message: "Profil administrateur mis à jour avec succès" };
   } catch (error) {
     return { error: "Erreur lors de la mise à jour" };
   }
 }
 
+/**
+ * Modification de mot de passe par l'utilisateur :
+ * - L'utilisateur ne peut modifier QUE son propre mot de passe (lié à sa session vérifiée).
+ * - Vérification stricte de l'ancien mot de passe.
+ * - Un utilisateur ne peut JAMAIS modifier le mot de passe d'un autre compte via cette action.
+ */
 export async function ChangePassword(formData: FormData) {
   try {
     const user = await GetCurrentUser();
@@ -239,6 +375,7 @@ export async function ChangePassword(formData: FormData) {
       return { error: "Le nouveau mot de passe doit faire au moins 6 caractères" };
     }
 
+    // Recherche de l'utilisateur basé UNIQUEMENT sur la session vérifiée
     const dbUser = await prisma.users.findUnique({ where: { id: user.id } });
     if (!dbUser) return { error: "Utilisateur introuvable" };
 
@@ -325,7 +462,7 @@ export async function GetAllSubscriptions() {
 
 export async function DeleteAdminSubscription(type: "ees" | "tutelle" | "programme", id: string) {
   const admin = await GetCurrentUser();
-  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
+  if (!admin || admin.role !== "ADMIN") return { error: "Action non autorisée" };
 
   try {
     if (type === "ees") {
@@ -344,22 +481,7 @@ export async function DeleteAdminSubscription(type: "ees" | "tutelle" | "program
   }
 }
 
-export async function AssignEesToUser(userId: string, eesId: string | null) {
-  const admin = await GetCurrentUser();
-  if (!admin || admin.role !== "ADMIN") return { error: "Non autorisé" };
-
-  await prisma.users.update({
-    where: { id: userId },
-    data: {
-      ees: eesId ? { set: [{ id: eesId }] } : { set: [] },
-    },
-  });
-
-  revalidatePath("/profile/admin");
-  return { success: true };
-}
-
-// --- SUIVIS UTILISATEUR ---
+// --- SUIVIS UTILISATEUR (AUTHENTIFIÉ SUR SON PROPRE COMPTE) ---
 
 export async function GetUserFollows() {
   const user = await GetCurrentUser();
@@ -457,6 +579,72 @@ export async function ToggleFollowProgramme(programmeId: string) {
   return { success: true };
 }
 
+export async function AdminDeleteUser(userId: string) {
+  const admin = await GetCurrentUser();
+  if (!admin || admin.role !== "ADMIN") return { error: "Action non autorisée" };
+
+  if (userId === admin.id) {
+    return { error: "Vous ne pouvez pas supprimer votre propre compte administrateur." };
+  }
+
+  try {
+    await prisma.users.delete({ where: { id: userId } });
+    revalidatePath("/profile/admin");
+    return { success: true, message: "Compte utilisateur supprimé avec succès." };
+  } catch (error) {
+    console.error("Erreur AdminDeleteUser:", error);
+    return { error: "Impossible de supprimer cet utilisateur." };
+  }
+}
+
+export async function UnfollowEes(eesId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return { error: "Non connecté" };
+
+  try {
+    await prisma.followEes.deleteMany({
+      where: { userId: user.id, eesId },
+    });
+    revalidatePath("/profile/utilisateur");
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (error) {
+    return { error: "Erreur lors du désabonnement." };
+  }
+}
+
+export async function UnfollowTutelle(tutelleId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return { error: "Non connecté" };
+
+  try {
+    await prisma.followTutelle.deleteMany({
+      where: { userId: user.id, tutelleId },
+    });
+    revalidatePath("/profile/utilisateur");
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (error) {
+    return { error: "Erreur lors du désabonnement." };
+  }
+}
+
+export async function UnfollowProgramme(programmeId: string) {
+  const user = await GetCurrentUser();
+  if (!user) return { error: "Non connecté" };
+
+  try {
+    await prisma.followProgramme.deleteMany({
+      where: { userId: user.id, programmeId },
+    });
+    revalidatePath("/profile/utilisateur");
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (error) {
+    return { error: "Erreur lors du désabonnement." };
+  }
+}
+
 export async function IsFollowingEes(eesId: string) {
   const user = await GetCurrentUser();
   if (!user) return false;
@@ -466,3 +654,4 @@ export async function IsFollowingEes(eesId: string) {
   });
   return !!follow;
 }
+

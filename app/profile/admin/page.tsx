@@ -1,18 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GetAllUsers, UpdateUserStatus, UpdateUserRole, GetCurrentUser, GetSystemStats, GetAllEes, AssignEesToUser, GetAllSubscriptions, DeleteAdminSubscription } from '@/app/action/user';
+import {
+    GetAllUsers, UpdateUserStatus, UpdateUserRole, GetCurrentUser,
+    GetSystemStats, GetAllEes, AssignEesToUser, GetAllSubscriptions,
+    DeleteAdminSubscription, AdminUpdateUserProfile, AdminResetUserPassword,
+    AdminDeleteUser
+} from '@/app/action/user';
+import { useRouter } from 'next/navigation';
 import {
     User, Mail, Power, Search, Loader2,
     ShieldCheck, ArrowLeft, ChevronRight,
     LayoutDashboard, Users, Newspaper,
     Calendar, School, BarChart3, TrendingUp,
-    ArrowRight, BellRing, Trash2
+    ArrowRight, BellRing, Trash2, Edit3, Key,
+    XCircle, CheckCircle2, AlertCircle, Save
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 
 export default function AdminConsole() {
+    const router = useRouter();
     const [users, setUsers] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [eesList, setEesList] = useState<any[]>([]);
@@ -20,6 +28,12 @@ export default function AdminConsole() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentUser, setCurrentUser] = useState<any>(null);
+
+    // Modals d'administration des comptes
+    const [editingUser, setEditingUser] = useState<any | null>(null);
+    const [passwordResetUser, setPasswordResetUser] = useState<any | null>(null);
+    const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [actionSubmitting, setActionSubmitting] = useState(false);
 
     const init = async () => {
         try {
@@ -31,13 +45,16 @@ export default function AdminConsole() {
                 GetAllSubscriptions()
             ]);
 
-            setCurrentUser(userData);
-            if (userData?.role === 'ADMIN') {
-                setUsers(allUsers || []);
-                setStats(systemStats);
-                setEesList(allEes || []);
-                setSubscriptions(allSubscriptions);
+            if (!userData || userData.role !== 'ADMIN') {
+                router.replace('/profile');
+                return;
             }
+
+            setCurrentUser(userData);
+            setUsers(allUsers || []);
+            setStats(systemStats);
+            setEesList(allEes || []);
+            setSubscriptions(allSubscriptions);
         } catch (error) {
             console.error("Erreur d'initialisation Admin:", error);
         } finally {
@@ -57,6 +74,58 @@ export default function AdminConsole() {
         if (!result?.error) {
             init();
         }
+    };
+
+    const handleEditUserSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!editingUser) return;
+        setActionSubmitting(true);
+        setActionMessage(null);
+
+        const formData = new FormData(e.currentTarget);
+        const res = await AdminUpdateUserProfile(editingUser.id, formData);
+
+        if (res.success) {
+            setActionMessage({ type: 'success', text: res.message || "Compte mis à jour avec succès." });
+            await init();
+            setTimeout(() => {
+                setEditingUser(null);
+                setActionMessage(null);
+            }, 1200);
+        } else {
+            setActionMessage({ type: 'error', text: res.error || "Erreur de mise à jour." });
+        }
+        setActionSubmitting(false);
+    };
+
+    const handleResetPasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!passwordResetUser) return;
+        setActionSubmitting(true);
+        setActionMessage(null);
+
+        const formData = new FormData(e.currentTarget);
+        const newPassword = formData.get("newPassword") as string;
+        const confirmPassword = formData.get("confirmPassword") as string;
+
+        if (newPassword !== confirmPassword) {
+            setActionMessage({ type: 'error', text: "Les mots de passe ne correspondent pas." });
+            setActionSubmitting(false);
+            return;
+        }
+
+        const res = await AdminResetUserPassword(passwordResetUser.id, newPassword);
+
+        if (res.success) {
+            setActionMessage({ type: 'success', text: res.message || "Mot de passe réinitialisé." });
+            setTimeout(() => {
+                setPasswordResetUser(null);
+                setActionMessage(null);
+            }, 1200);
+        } else {
+            setActionMessage({ type: 'error', text: res.error || "Erreur lors de la réinitialisation." });
+        }
+        setActionSubmitting(false);
     };
 
     if (loading) {
@@ -92,7 +161,7 @@ export default function AdminConsole() {
                     <div>
                         <div className="flex items-center gap-2 text-indigo-400 mb-2">
                             <ShieldCheck size={20} />
-                            <span className="text-sm font-black uppercase tracking-widest">Contrôle Système</span>
+                            <span className="text-sm font-black uppercase tracking-widest">Contrôle Système & Sécurité</span>
                         </div>
                         <h1 className="text-5xl font-black text-white tracking-tighter">Console Admin</h1>
                     </div>
@@ -206,7 +275,7 @@ export default function AdminConsole() {
                                     <th className="px-10 py-6">Rôle d&apos;accès</th>
                                     <th className="px-10 py-6">Établissement rattaché</th>
                                     <th className="px-10 py-6">Intégrité</th>
-                                    <th className="px-10 py-6 text-right">Actions</th>
+                                    <th className="px-10 py-6 text-right">Actions Administrateur</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -252,7 +321,7 @@ export default function AdminConsole() {
                                                 >
                                                     <option value="">Non assigné</option>
                                                     {eesList.map(ees => (
-                                                        <option key={ees.id} value={ees.id}>{ees.nom_ees}</option>
+                                                        <option key={ees.id} value={ees.id}>{ees.nomEes}</option>
                                                     ))}
                                                 </select>
                                             ) : (
@@ -267,20 +336,67 @@ export default function AdminConsole() {
                                             </div>
                                         </td>
                                         <td className="px-10 py-6 text-right">
-                                            <button
-                                                disabled={u.id === currentUser?.id}
-                                                onClick={async () => {
-                                                    await UpdateUserStatus(u.id, !u.isActive);
-                                                    init();
-                                                }}
-                                                className={`p-3.5 rounded-2xl border transition-all ${u.isActive
-                                                    ? 'hover:bg-rose-500/10 border-white/5 text-slate-500 hover:text-rose-400'
-                                                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                                    }`}
-                                                title={u.isActive ? "Désactiver le compte" : "Réactiver le compte"}
-                                            >
-                                                <Power size={20} />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                {/* Modifier les informations du compte (Nom, Email) */}
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingUser(u);
+                                                        setActionMessage(null);
+                                                    }}
+                                                    className="p-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-indigo-600 text-slate-400 hover:text-white transition-all"
+                                                    title="Modifier les informations du compte (Nom, Email)"
+                                                >
+                                                    <Edit3 size={16} />
+                                                </button>
+
+                                                {/* Réinitialiser le mot de passe */}
+                                                <button
+                                                    onClick={() => {
+                                                        setPasswordResetUser(u);
+                                                        setActionMessage(null);
+                                                    }}
+                                                    className="p-3 rounded-2xl border border-white/5 bg-white/5 hover:bg-purple-600 text-slate-400 hover:text-white transition-all"
+                                                    title="Réinitialiser le mot de passe"
+                                                >
+                                                    <Key size={16} />
+                                                </button>
+
+                                                {/* Activer/Désactiver */}
+                                                <button
+                                                    disabled={u.id === currentUser?.id}
+                                                    onClick={async () => {
+                                                        await UpdateUserStatus(u.id, !u.isActive);
+                                                        init();
+                                                    }}
+                                                    className={`p-3 rounded-2xl border transition-all ${u.isActive
+                                                        ? 'hover:bg-rose-500/10 border-white/5 text-slate-500 hover:text-rose-400'
+                                                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                                        } disabled:opacity-30 disabled:cursor-not-allowed`}
+                                                    title={u.isActive ? "Désactiver le compte" : "Réactiver le compte"}
+                                                >
+                                                    <Power size={16} />
+                                                </button>
+
+                                                {/* Supprimer définitivement (interdit sur son propre compte) */}
+                                                {u.id !== currentUser?.id && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${u.nom} (${u.email}) ? Cette action est irréversible.`)) {
+                                                                const res = await AdminDeleteUser(u.id);
+                                                                if (res.success) {
+                                                                    init();
+                                                                } else {
+                                                                    alert(res.error || "Erreur lors de la suppression");
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="p-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white transition-all"
+                                                        title="Supprimer définitivement le compte"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -306,6 +422,140 @@ export default function AdminConsole() {
                     </div>
                 </div>
             </main>
+
+            {/* MODAL 1 : MODIFIER UN UTILISATEUR (RÉSERVÉ ADMIN) */}
+            {editingUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+                    <div className="glass-card w-full max-w-md rounded-[32px] border-white/10 shadow-3xl p-8 animate-in zoom-in-95">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="text-xl font-black text-white">Modifier le compte</h3>
+                                <p className="text-xs text-slate-400">Modification sécurisée par l&apos;administrateur</p>
+                            </div>
+                            <button onClick={() => setEditingUser(null)} className="p-2 text-slate-500 hover:text-white">
+                                <XCircle size={22} />
+                            </button>
+                        </div>
+
+                        {actionMessage && (
+                            <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 ${actionMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                                {actionMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                                <p className="text-xs font-bold">{actionMessage.text}</p>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleEditUserSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nom Complet</label>
+                                <input
+                                    name="nom"
+                                    type="text"
+                                    defaultValue={editingUser.nom}
+                                    required
+                                    className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 px-4 text-white text-sm outline-none focus:border-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Adresse Email (Sensible)</label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    defaultValue={editingUser.email}
+                                    required
+                                    className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 px-4 text-white text-sm outline-none focus:border-indigo-500"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser(null)}
+                                    className="px-5 py-3 rounded-xl border border-white/10 text-xs font-bold text-slate-400 hover:text-white"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionSubmitting}
+                                    className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+                                >
+                                    {actionSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL 2 : RÉINITIALISER LE MOT DE PASSE (RÉSERVÉ ADMIN) */}
+            {passwordResetUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+                    <div className="glass-card w-full max-w-md rounded-[32px] border-white/10 shadow-3xl p-8 animate-in zoom-in-95">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="text-xl font-black text-white">Réinitialiser le mot de passe</h3>
+                                <p className="text-xs text-slate-400">Pour : {passwordResetUser.nom} ({passwordResetUser.email})</p>
+                            </div>
+                            <button onClick={() => setPasswordResetUser(null)} className="p-2 text-slate-500 hover:text-white">
+                                <XCircle size={22} />
+                            </button>
+                        </div>
+
+                        {actionMessage && (
+                            <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 ${actionMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                                {actionMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                                <p className="text-xs font-bold">{actionMessage.text}</p>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Nouveau Mot de Passe</label>
+                                <input
+                                    name="newPassword"
+                                    type="password"
+                                    required
+                                    minLength={6}
+                                    placeholder="Minimum 6 caractères"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 px-4 text-white text-sm outline-none focus:border-purple-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Confirmer le Mot de Passe</label>
+                                <input
+                                    name="confirmPassword"
+                                    type="password"
+                                    required
+                                    minLength={6}
+                                    placeholder="Répéter le mot de passe"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-2xl py-3 px-4 text-white text-sm outline-none focus:border-purple-500"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setPasswordResetUser(null)}
+                                    className="px-5 py-3 rounded-xl border border-white/10 text-xs font-bold text-slate-400 hover:text-white"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionSubmitting}
+                                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+                                >
+                                    {actionSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Key size={16} />}
+                                    Changer le mot de passe
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

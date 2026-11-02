@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
+import { GetCurrentUser } from "./user";
 
 /**
  * AJOUTER UN CONCOURS
@@ -12,6 +13,12 @@ export async function AddConcours(formData: FormData) {
   let targetID = "";
 
   try {
+    const user = await GetCurrentUser();
+    const eesId = formData.get("ees_id") as string;
+    if (!user || (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== eesId))) {
+      return { error: "Action non autorisée sur cet établissement." };
+    }
+
     const nomConcours = formData.get("nom_concours") as string;
     const etat = formData.get("etat") === "on";
     const concoursBio = formData.get("concours_bio") as string;
@@ -21,7 +28,6 @@ export async function AddConcours(formData: FormData) {
     const dateExamEcrit = new Date(formData.get("date_exam_ecrit") as string);
     const dateExamOral = new Date(formData.get("date_exam_oral") as string);
     const diplomeRequis = formData.get("diplome_requis") as string;
-    const eesId = formData.get("ees_id") as string;
     const programmeId = (formData.get("programme_id") as string) || undefined;
 
     targetID = eesId;
@@ -97,7 +103,14 @@ export async function UpdateConcours(formData: FormData) {
   let targetID = "";
 
   try {
+    const user = await GetCurrentUser();
     const id = formData.get("id") as string;
+    const eesId = formData.get("ees_id") as string;
+
+    if (!user || (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== eesId))) {
+      return { error: "Action non autorisée sur ce concours." };
+    }
+
     const nomConcours = formData.get("nom_concours") as string;
     const etat = formData.get("etat") === "on" || formData.get("etat") === "true";
     const concoursBio = formData.get("concours_bio") as string;
@@ -107,7 +120,6 @@ export async function UpdateConcours(formData: FormData) {
     const dateExamEcrit = new Date(formData.get("date_exam_ecrit") as string);
     const dateExamOral = new Date(formData.get("date_exam_oral") as string);
     const diplomeRequis = formData.get("diplome_requis") as string;
-    const eesId = formData.get("ees_id") as string;
     const programmeId = (formData.get("programme_id") as string) || undefined;
 
     targetID = eesId;
@@ -184,6 +196,11 @@ export async function DeleteConcours(id: string, ees_id: string) {
   let eesInfo = null;
 
   try {
+    const user = await GetCurrentUser();
+    if (!user || (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== ees_id))) {
+      return { error: "Action non autorisée sur ce concours." };
+    }
+
     eesInfo = await prisma.ees.findUnique({
       where: { id: ees_id },
       select: { nomEes: true, tutelleId: true }

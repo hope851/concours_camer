@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { v2 as cloudinary } from "cloudinary";
 import { createHash, randomUUID } from "crypto";
+import { GetCurrentUser } from "./user";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -34,6 +35,11 @@ function parseOptionalId(value: FormDataEntryValue | null) {
 }
 
 export async function createNewsAction(formData: FormData) {
+  const user = await GetCurrentUser();
+  if (!user || (user.role !== "ADMIN" && user.role !== "GESTIONAIRE")) {
+    throw new Error("Action non autorisée");
+  }
+
   const title = formData.get("title") as string;
   const file = formData.get("image") as File;
 
@@ -86,6 +92,11 @@ export async function createNewsAction(formData: FormData) {
 }
 
 export async function updateNewsAction(id: string, formData: FormData) {
+  const user = await GetCurrentUser();
+  if (!user || (user.role !== "ADMIN" && user.role !== "GESTIONAIRE")) {
+    throw new Error("Action non autorisée");
+  }
+
   await prisma.news.update({
     where: { id },
     data: {
@@ -105,6 +116,11 @@ export async function updateNewsAction(id: string, formData: FormData) {
 }
 
 export async function deleteNewsAction(id: string) {
+  const user = await GetCurrentUser();
+  if (!user || (user.role !== "ADMIN" && user.role !== "GESTIONAIRE")) {
+    throw new Error("Action non autorisée");
+  }
+
   await prisma.news.delete({ where: { id } });
   revalidatePath("/news");
 }

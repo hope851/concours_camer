@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
+import { GetCurrentUser } from "./user";
 
 export async function GetPays() {
   try {
@@ -35,6 +36,9 @@ export async function GetPaysById(id: string) {
 
 export async function AddPays(formData: FormData) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") return { error: "Action réservée aux administrateurs." };
+
     const nomPays = (formData.get("nom_pays") as string)?.trim();
     const region = (formData.get("region") as string)?.trim();
 
@@ -63,6 +67,9 @@ export async function AddPays(formData: FormData) {
 
 export async function UpdatePays(formData: FormData) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") return { error: "Action réservée aux administrateurs." };
+
     const id = (formData.get("id") as string)?.trim();
     const nomPays = (formData.get("nom_pays") as string)?.trim();
     const region = (formData.get("region") as string)?.trim();
@@ -88,6 +95,9 @@ export async function UpdatePays(formData: FormData) {
 
 export async function DeletePays(id: string) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") return { error: "Action réservée aux administrateurs." };
+
     await prisma.pays.delete({ where: { id } });
     revalidatePath("/profile/admin");
     return { success: true };
@@ -127,6 +137,9 @@ export async function GetVilleById(id: string) {
 
 export async function AddVille(formData: FormData) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") return { error: "Action réservée aux administrateurs." };
+
     const nomVille = (formData.get("nom_ville") as string)?.trim();
     const paysId = (formData.get("pays_id") as string)?.trim();
 
@@ -160,6 +173,9 @@ export async function AddVille(formData: FormData) {
 
 export async function UpdateVille(formData: FormData) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") return { error: "Action réservée aux administrateurs." };
+
     const id = (formData.get("id") as string)?.trim();
     const nomVille = (formData.get("nom_ville") as string)?.trim();
     const paysId = (formData.get("pays_id") as string)?.trim();
@@ -187,6 +203,9 @@ export async function UpdateVille(formData: FormData) {
 
 export async function DeleteVille(id: string) {
   try {
+    const user = await GetCurrentUser();
+    if (!user || user.role !== "ADMIN") return { error: "Action réservée aux administrateurs." };
+
     await prisma.ville.delete({ where: { id } });
     revalidatePath("/profile/admin");
     return { success: true };
@@ -233,6 +252,11 @@ export async function GetProgrammeById(id: string) {
 export async function AddProgramme(formData: FormData) {
   try {
     const eesId = (formData.get("ees_id") as string)?.trim();
+    const user = await GetCurrentUser();
+    if (!user || (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== eesId))) {
+      return { error: "Action non autorisée sur cet établissement." };
+    }
+
     const nomProgramme = (formData.get("nom_programme") as string)?.trim();
     const specialite = (formData.get("specialite") as string)?.trim() || null;
     const niveau = (formData.get("niveau") as string)?.trim() || "Licence";
@@ -264,6 +288,11 @@ export async function UpdateProgramme(formData: FormData) {
   try {
     const id = (formData.get("id") as string)?.trim();
     const eesId = (formData.get("ees_id") as string)?.trim();
+    const user = await GetCurrentUser();
+    if (!user || (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== eesId))) {
+      return { error: "Action non autorisée sur ce programme." };
+    }
+
     const nomProgramme = (formData.get("nom_programme") as string)?.trim();
     const specialite = (formData.get("specialite") as string)?.trim() || null;
     const niveau = (formData.get("niveau") as string)?.trim() || "Licence";
@@ -293,6 +322,16 @@ export async function UpdateProgramme(formData: FormData) {
 
 export async function DeleteProgramme(id: string) {
   try {
+    const user = await GetCurrentUser();
+    if (!user) return { error: "Non connecté." };
+
+    const target = await prisma.programme.findUnique({ where: { id } });
+    if (!target) return { error: "Programme introuvable." };
+
+    if (user.role !== "ADMIN" && (user.role !== "GESTIONAIRE" || user.eesId !== target.eesId)) {
+      return { error: "Action non autorisée sur ce programme." };
+    }
+
     await prisma.programme.delete({ where: { id } });
     revalidatePath("/profile/admin");
     return { success: true };
